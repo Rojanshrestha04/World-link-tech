@@ -2,7 +2,8 @@ import React, { useState } from "react";
 import backgroundImage from "../image/1.jpg";
 import { useHistory } from "react-router-dom";
 import Stats from "../components/Stats";
-import NewsAndEvents from "../pages/NewsEvents";
+import OurPartners from "../components/OurPartners";
+import NewsAndEvents from "../components/NewsAndEvents";
 import Resources from "../pages/Resources/resources";
 import logo from "../image/logo (2).png"; // Ensure this path is correct
 
@@ -156,25 +157,15 @@ const Home = () => {
       </div>
 
 
-      {/* Sections */}
-      <section className="bg-white py-12">
-        <div className="container mx-auto grid grid-cols-1 md:grid-cols-3 gap-8 px-6">
-          {[
-            { title: "National Vocational Qualifications", desc: "Structured framework for skill validation." },
-            { title: "Recognition of Prior Learning (RPL)", desc: "Certify your skills with our RPL programs." },
-            { title: "Sector Skill Committees", desc: "Collaborating with industries for better training." },
-          ].map((item, index) => (
-            <div key={index} className="bg-blue-50 p-6 rounded-lg shadow-md hover:shadow-lg transition-all">
-              <h3 className="text-xl font-semibold text-blue-600">{item.title}</h3>
-              <p className="text-gray-600 mt-2">{item.desc}</p>
-            </div>
-          ))}
-        </div>
-      </section>
-
       {/* Resources Section */}
       <div>
         <Resources />
+      </div>
+
+
+      {/* Our Partners Section */}
+      <div>
+        <OurPartners />
       </div>
 
       {/* Contact Section */}

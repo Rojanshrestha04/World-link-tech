@@ -31,7 +31,9 @@ const Resources = () => {
         scrollRef.current.scrollWidth
       ) {
         setTimeout(() => {
-          scrollRef.current.scrollTo({ left: 0, behavior: 'smooth' });
+          if (scrollRef.current) { // Ensure scrollRef.current is not null
+            scrollRef.current.scrollTo({ left: 0, behavior: 'smooth' });
+          }
         }, 2000);
       }
     }

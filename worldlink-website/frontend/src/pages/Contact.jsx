@@ -34,7 +34,9 @@ const ContactUs = () => {
       <iframe 
       src="https://www.google.com/maps/embed?pb=!1m14!1m8!1m3!1d441.4221395802619!2d85.314502!3d27.736512!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x39eb19276dac2185%3A0x4800dee085861da6!2sWorld%20Link%20Technical%20Training%20Institute%20P.%20Ltd!5e0!3m2!1sen!2sus!4v1742709599967!5m2!1sen!2sus" 
       className="w-full h-64 rounded-lg shadow-lg"
-      allowFullScreen>
+      allowFullScreen
+      title="World Link Technical Training Institute Location Map" // Added title attribute
+      >
       </iframe>
 
       {/* Contact Form */}

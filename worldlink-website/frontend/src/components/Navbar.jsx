@@ -31,42 +31,10 @@ const Navbar = () => {
               </ul>
             )}
           </li>
-          <li className="relative" onMouseEnter={() => handleMouseEnter("services")} onMouseLeave={handleMouseLeave}>
-            <button className="focus:outline-none flex items-center">
-              Services <FaChevronDown className="ml-2" />
-            </button>
-            {dropdown === "services" && (
-              <ul className="bg-blue-700 p-2 absolute top-full left-0 w-48 shadow-lg z-50">
-                <li><Link to="/services/internet">Internet</Link></li>
-                <li><Link to="/services/iptv">IPTV</Link></li>
-                <li><Link to="/services/enterprise">Enterprise Solutions</Link></li>
-              </ul>
-            )}
-          </li>
-          <li className="relative" onMouseEnter={() => handleMouseEnter("training")} onMouseLeave={handleMouseLeave}>
-            <button className="focus:outline-none flex items-center">
-              Training Programs <FaChevronDown className="ml-2" />
-            </button>
-            {dropdown === "training" && (
-              <ul className="bg-blue-700 p-2 absolute top-full left-0 w-48 shadow-lg z-50">
-                <li><Link to="/training/technical">Technical Training</Link></li>
-                <li><Link to="/training/certifications">Certifications</Link></li>
-                <li><Link to="/training/internship">Internship Programs</Link></li>
-              </ul>
-            )}
-          </li>
-          <li className="relative" onMouseEnter={() => handleMouseEnter("support")} onMouseLeave={handleMouseLeave}>
-            <button className="focus:outline-none flex items-center">
-              Support <FaChevronDown className="ml-2" />
-            </button>
-            {dropdown === "support" && (
-              <ul className="bg-blue-700 p-2 absolute top-full left-0 w-48 shadow-lg z-50">
-                <li><Link to="/support/contact">Contact Support</Link></li>
-                <li><Link to="/support/faqs">FAQs</Link></li>
-                <li><Link to="/support/troubleshooting">Troubleshooting</Link></li>
-              </ul>
-            )}
-          </li>
+          <li><Link to="/services">Services</Link></li>
+          <li><Link to="/curriculum">Curriculum</Link></li>
+          <li><Link to="/database">Database</Link></li>
+          <li><Link to="/contact">Contact Us</Link></li>
           <li className="relative" onMouseEnter={() => handleMouseEnter("resources")} onMouseLeave={handleMouseLeave}>
             <button className="focus:outline-none flex items-center">
               Resources <FaChevronDown className="ml-2" />
