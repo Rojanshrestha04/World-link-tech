@@ -5,7 +5,7 @@ import Stats from "../components/Stats";
 import OurPartners from "../components/OurPartners";
 import NewsAndEvents from "../components/NewsAndEvents";
 import Resources from "../pages/Resources/resources";
-import logo from "../image/logo (2).png"; // Ensure this path is correct
+import logo from "../image/logo (2).png"; 
 
 const Home = () => {
   const history = useHistory();
@@ -83,11 +83,6 @@ const Home = () => {
         )}
       </div>
 
-      {/* Stats Section */}
-      <div>
-        <Stats />
-      </div>
-
 
       {/* About Section */}
       <section className="container mx-auto py-12 px-6 flex flex-col md:flex-row items-center gap-8">
@@ -109,12 +104,18 @@ const Home = () => {
         {/* Image Content */}
         <div className="md:w-1/2">
           <img
-            src="/path-to-your-image.jpg"
+            src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSrFZA3nEzxHsCENU37vLOu5WgMi9FmiAe_h2JyXSs1qg&s&ec=72940543"
             alt="About Us"
             className="w-full rounded-lg shadow-md"
           />
         </div>
       </section>
+
+      
+      {/* Stats Section */}
+      <div>
+        <Stats />
+      </div>
 
 
       {/* New Video & Facebook Section */}

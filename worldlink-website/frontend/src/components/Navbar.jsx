@@ -25,7 +25,6 @@ const Navbar = () => {
             {dropdown === "about-worldlink" && (
               <ul className="bg-blue-700 p-2 absolute top-full left-0 w-48 shadow-lg z-50">
                 <li><Link to="/about-worldlink/introduction">Introduction</Link></li>
-                <li><Link to="/about-worldlink/company-profile">Company Profile</Link></li>
                 <li><Link to="/about-worldlink/mission-vision">Mission & Vision</Link></li>
                 <li><Link to="/about-worldlink/team">Our Team</Link></li>
               </ul>
@@ -34,7 +33,6 @@ const Navbar = () => {
           <li><Link to="/services">Services</Link></li>
           <li><Link to="/curriculum">Curriculum</Link></li>
           <li><Link to="/database">Database</Link></li>
-          <li><Link to="/contact">Contact Us</Link></li>
           <li className="relative" onMouseEnter={() => handleMouseEnter("resources")} onMouseLeave={handleMouseLeave}>
             <button className="focus:outline-none flex items-center">
               Resources <FaChevronDown className="ml-2" />
@@ -48,7 +46,7 @@ const Navbar = () => {
             )}
           </li>
           <li><Link to="/news-and-events">News & Events</Link></li>
-          <li><Link to="/careers">Careers</Link></li>
+          <li><Link to="/contact">Contact Us</Link></li>
         </ul>
       </div>
     </nav>

@@ -50,14 +50,14 @@ const NewsAndEvents = () => {
 
   const scrollNext = () => {
     if (scrollRef.current) {
-      scrollRef.current.scrollBy({ left: 300, behavior: 'smooth' });
+      scrollRef.current.scrollBy({ left: 300, behavior: "smooth" });
       if (
         scrollRef.current.scrollLeft + scrollRef.current.clientWidth >=
         scrollRef.current.scrollWidth
       ) {
         setTimeout(() => {
-          if (scrollRef.current) { // Ensure scrollRef.current is not null
-            scrollRef.current.scrollTo({ left: 0, behavior: 'smooth' });
+          if (scrollRef.current) {
+            scrollRef.current.scrollTo({ left: 0, behavior: "smooth" });
           }
         }, 2000);
       }
@@ -90,12 +90,17 @@ const NewsAndEvents = () => {
         <div
           ref={scrollRef}
           className="flex overflow-x-auto scroll-smooth space-x-4"
-          style={{ scrollBehavior: "smooth" }}
+          style={{
+            scrollBehavior: "smooth",
+            overflowX: "auto",
+            scrollbarWidth: "none", // For Firefox
+            msOverflowStyle: "none", // For Internet Explorer and Edge
+          }}
         >
           {newsData.map((news, index) => (
             <div
               key={index}
-              className="min-w-[300px] flex-shrink-0 bg-white shadow-lg rounded-lg p-4"
+              className="min-w-[300px] flex-shrink-0 bg-white shadow-lg rounded-lg p-4 transform transition-transform duration-300 hover:scale-105 hover:shadow-2xl"
             >
               <img
                 src={news.image}
@@ -109,8 +114,8 @@ const NewsAndEvents = () => {
 
           {/* View All Section */}
           <div
-            className="min-w-[300px] flex-shrink-0 flex items-center justify-center bg-blue-600 text-white text-lg font-bold cursor-pointer rounded-lg p-4"
-            onClick={() => window.location.href = "/news-and-events"}
+            className="min-w-[300px] flex-shrink-0 flex items-center justify-center bg-blue-600 text-white text-lg font-bold cursor-pointer rounded-lg p-4 transform transition-transform duration-300 hover:scale-105 hover:shadow-2xl"
+            onClick={() => (window.location.href = "/news-and-events")}
           >
             View All →
           </div>

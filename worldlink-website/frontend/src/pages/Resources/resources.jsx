@@ -1,6 +1,6 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { FaChevronLeft, FaChevronRight } from 'react-icons/fa';
+import { FaChevronLeft, FaChevronRight, FaFileAlt, FaBook, FaUser } from 'react-icons/fa';
 
 const pdfData = [
   { title: 'PDF Document 1', file: '/path/to/pdf1.pdf' },
@@ -31,7 +31,7 @@ const Resources = () => {
         scrollRef.current.scrollWidth
       ) {
         setTimeout(() => {
-          if (scrollRef.current) { // Ensure scrollRef.current is not null
+          if (scrollRef.current) {
             scrollRef.current.scrollTo({ left: 0, behavior: 'smooth' });
           }
         }, 2000);
@@ -105,33 +105,21 @@ const Resources = () => {
               to="/policies"
               className="resource-icon flex flex-col items-center text-center text-gray-800 hover:text-blue-600 transition"
             >
-              <img
-                src="/path/to/policies-icon.png"
-                alt="Policies"
-                className="w-20 h-20 mb-2"
-              />
+              <FaFileAlt className="w-20 h-20 mb-2 text-blue-600" />
               <p className="text-lg font-medium">Policies</p>
             </Link>
             <Link
               to="/tutorials"
               className="resource-icon flex flex-col items-center text-center text-gray-800 hover:text-blue-600 transition"
             >
-              <img
-                src="/path/to/tutorials-icon.png"
-                alt="Tutorials"
-                className="w-20 h-20 mb-2"
-              />
+              <FaBook className="w-20 h-20 mb-2 text-blue-600" />
               <p className="text-lg font-medium">Tutorials</p>
             </Link>
             <Link
               to="/usermanuals"
               className="resource-icon flex flex-col items-center text-center text-gray-800 hover:text-blue-600 transition"
             >
-              <img
-                src="/path/to/usermanuals-icon.png"
-                alt="User Manuals"
-                className="w-20 h-20 mb-2"
-              />
+              <FaUser className="w-20 h-20 mb-2 text-blue-600" />
               <p className="text-lg font-medium">User Manuals</p>
             </Link>
           </div>

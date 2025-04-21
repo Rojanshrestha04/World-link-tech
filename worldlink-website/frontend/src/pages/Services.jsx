@@ -1,10 +1,10 @@
 import { useState, useEffect } from "react";
 
 const images = [
-  "/images/training1.jpg",
-  "/images/training2.jpg",
-  "/images/training3.jpg",
-  "/images/training4.jpg"
+  "https://images.pexels.com/photos/414612/pexels-photo-414612.jpeg?cs=srgb&dl=pexels-souvenirpixels-414612.jpg&fm=jpg",
+  "https://media.istockphoto.com/id/1403500817/photo/the-craggies-in-the-blue-ridge-mountains.jpg?s=612x612&w=0&k=20&c=N-pGA8OClRVDzRfj_9AqANnOaDS3devZWwrQNwZuDSk=",
+  "https://static.vecteezy.com/vite/assets/photo-masthead-375-BoK_p8LG.webp",
+  "https://bkacontent.com/wp-content/uploads/2016/06/Depositphotos_31146757_l-2015.jpg"
 ];
 
 const data = [

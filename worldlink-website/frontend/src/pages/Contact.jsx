@@ -63,7 +63,7 @@ const ContactUs = () => {
     {/* Image Section - 1/3 Width */}
     <div className="w-full md:w-1/3 flex justify-center items-center p-4">
     <img 
-      src="your-image-url.jpg" 
+      src="https://images.pexels.com/photos/214574/pexels-photo-214574.jpeg?cs=srgb&dl=pexels-sebastian-214574.jpg&fm=jpg" 
       alt="Contact Illustration" 
       className="w-full h-full object-cover rounded-lg shadow-md"
     />

@@ -7,7 +7,6 @@ import Footer from "./components/Footer";
 // Importing Pages
 import Home from "./pages/Home";
 import Introduction from "./pages/AboutWorldLink/Introduction";
-import CompanyProfile from "./pages/AboutWorldLink/CompanyProfile";
 import MissionVision from "./pages/AboutWorldLink/MissionVision";
 import Team from "./pages/AboutWorldLink/Team";
 import Services from "./pages/Services";
@@ -19,7 +18,6 @@ import UserManuals from "./pages/Resources/UserManuals";
 import Tutorials from "./pages/Resources/Tutorials";
 import Policies from "./pages/Resources/Policies";
 import NewsEvents from "./pages/NewsEvents";
-import Careers from "./pages/Careers";
 
 function App() {
   return (
@@ -31,7 +29,6 @@ function App() {
         
         {/* About WorldLink Routes */}
         <Route path="/about-worldlink/introduction" component={Introduction} />
-        <Route path="/about-worldlink/company-profile" component={CompanyProfile} />
         <Route path="/about-worldlink/mission-vision" component={MissionVision} />
         <Route path="/about-worldlink/team" component={Team} />
 
@@ -47,7 +44,6 @@ function App() {
         <Route path="/curriculum" component={Curriculum} />
         <Route path="/database" component={Database} />
         <Route path="/contact" component={Contact} />
-        <Route path="/careers" component={Careers} />
       </Switch>
       <Footer />
     </Router>
