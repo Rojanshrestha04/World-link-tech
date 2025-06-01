@@ -1,7 +1,7 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { useRouter } from "next/navigation"
+import { useState } from "react"
+import { useRouter, useSearchParams } from "next/navigation"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import { z } from "zod"
@@ -9,7 +9,8 @@ import { Button } from "@/components/ui/button"
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { getSupabaseBrowserClient } from "@/lib/supabase"
+import { Loader2 } from "lucide-react"
+import { useAdminAuth } from "@/contexts/auth-context"
 
 const formSchema = z.object({
   email: z.string().email({
@@ -24,7 +25,9 @@ export default function AdminLoginForm() {
   const [error, setError] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const router = useRouter()
-  const supabase = getSupabaseBrowserClient()
+  const searchParams = useSearchParams()
+  const callbackUrl = searchParams.get("callbackUrl") || "/admin"
+  const { signIn } = useAdminAuth()
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -34,47 +37,33 @@ export default function AdminLoginForm() {
     },
   })
 
-  useEffect(() => {
-    const checkSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession()
-      if (session) {
-        // Redirect to admin dashboard if already logged in
-        router.push("/admin")
-      }
-    }
-    checkSession()
-  }, [router, supabase]) // Ensure dependencies are correct
-
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsLoading(true)
     setError(null)
 
     try {
-      const { error: signInError } = await supabase.auth.signInWithPassword({
-        email: values.email,
-        password: values.password,
-      })
+      const { error, success } = await signIn(values.email, values.password)
 
-      if (signInError) throw new Error(signInError.message)
-
-      const { data: userData, error: userError } = await supabase
-        .from("users")
-        .select("role")
-        .eq("email", values.email)
-        .single()
-
-      if (userError) throw new Error("Failed to verify user role")
-
-      if (userData.role !== "admin") {
-        await supabase.auth.signOut()
-        throw new Error("You do not have permission to access the admin panel")
+      if (!success) {
+        throw error || new Error("Login failed")
       }
 
-      // Redirect to admin dashboard
-      router.push("/admin")
+      // If authentication is successful, redirect to admin dashboard or callback URL
+      router.push(callbackUrl)
+      router.refresh()
     } catch (err) {
       console.error("Login error:", err)
-      setError(err instanceof Error ? err.message : "An error occurred during login")
+      if (err instanceof Error) {
+        if (err.message.includes("Failed to fetch")) {
+          setError("Network error: Unable to connect to the server. Please check your internet connection and try again.")
+        } else if (err.message.includes("Unauthorized")) {
+          setError("You do not have admin access. Please contact the administrator.")
+        } else {
+          setError(err.message)
+        }
+      } else {
+        setError("An unexpected error occurred. Please try again.")
+      }
     } finally {
       setIsLoading(false)
     }
@@ -119,7 +108,14 @@ export default function AdminLoginForm() {
           />
 
           <Button type="submit" className="w-full" disabled={isLoading}>
-            {isLoading ? "Logging in..." : "Login"}
+            {isLoading ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Logging in...
+              </>
+            ) : (
+              "Login"
+            )}
           </Button>
         </form>
       </Form>

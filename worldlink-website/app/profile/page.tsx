@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
-import { useAuth } from "@/contexts/auth-context"
+import { useUserAuth } from "@/context/auth-context"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -14,7 +14,7 @@ import { Loader2 } from "lucide-react"
 import PageHeader from "@/components/page-header"
 
 export default function ProfilePage() {
-  const { user, isLoading } = useAuth()
+  const { user, isLoading } = useUserAuth()
   const router = useRouter()
   const [profile, setProfile] = useState<UserProfile | null>(null)
   const [isUpdating, setIsUpdating] = useState(false)

@@ -30,9 +30,10 @@ interface AuthContextType {
   isAdmin: boolean
 }
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined)
+const UserAuthContext = createContext<AuthContextType | undefined>(undefined)
+const AdminAuthContext = createContext<AuthContextType | undefined>(undefined)
 
-export function AuthProviders({ children }: { children: React.ReactNode }) {
+export function UserAuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [session, setSession] = useState<Session | null>(null)
   const [isLoading, setIsLoading] = useState(true)
@@ -167,13 +168,192 @@ export function AuthProviders({ children }: { children: React.ReactNode }) {
     isAdmin,
   }
 
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
+  return <UserAuthContext.Provider value={value}>{children}</UserAuthContext.Provider>
 }
 
-export function useAuth() {
-  const context = useContext(AuthContext)
+export function useUserAuth() {
+  const context = useContext(UserAuthContext)
   if (context === undefined) {
-    throw new Error("useAuth must be used within an AuthProvider")
+    throw new Error("useUserAuth must be used within a UserAuthProvider")
+  }
+  return context
+}
+
+export function AdminAuthProvider({ children }: { children: React.ReactNode }) {
+  const [user, setUser] = useState<User | null>(null)
+  const [session, setSession] = useState<Session | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
+  const [isAdmin, setIsAdmin] = useState(false)
+  const router = useRouter()
+  const supabase = getSupabaseBrowserClient()
+
+  useEffect(() => {
+    const fetchSession = async () => {
+      setIsLoading(true)
+
+      try {
+        // Get session
+        const {
+          data: { session },
+          error,
+        } = await supabase.auth.getSession()
+
+        if (error) {
+          throw error
+        }
+
+        if (session) {
+          setSession(session)
+          setUser(session.user)
+
+          // Check if user is admin
+          const { data: userData, error: userError } = await supabase
+            .from("users")
+            .select("role")
+            .eq("id", session.user.id)
+            .single()
+
+          if (!userError && userData) {
+            setIsAdmin(userData.role === "admin")
+          }
+        }
+      } catch (error) {
+        console.error("Error fetching session:", error)
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    fetchSession()
+
+    // Set up auth state listener
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(async (event, session) => {
+      setSession(session)
+      setUser(session?.user ?? null)
+
+      if (session?.user) {
+        // Check if user is admin
+        const { data: userData, error: userError } = await supabase
+          .from("users")
+          .select("role")
+          .eq("id", session.user.id)
+          .single()
+
+        if (!userError && userData) {
+          setIsAdmin(userData.role === "admin")
+        }
+      } else {
+        setIsAdmin(false)
+      }
+
+      router.refresh()
+    })
+
+    return () => {
+      subscription.unsubscribe()
+    }
+  }, [router, supabase])
+
+  const signIn = async (email: string, password: string) => {
+    try {
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      })
+
+      if (error) {
+        return {
+          error,
+          success: false,
+        }
+      }
+
+      // Fetch the latest session after sign in
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+
+      if (sessionError || !session) {
+        await supabase.auth.signOut();
+        return {
+          error: new Error("Session not found after login"),
+          success: false,
+        };
+      }
+
+      // Verify admin role using the session's user ID
+      const { data: userData, error: userError } = await supabase
+        .from("users")
+        .select("role")
+        .eq("id", session.user.id)
+        .single();
+
+      if (userError || !userData || userData.role !== "admin") {
+        await supabase.auth.signOut();
+        return {
+          error: new Error("Unauthorized: Admin access required"),
+          success: false,
+        };
+      }
+
+      return {
+        error: null,
+        success: true,
+      };
+    } catch (error) {
+      return {
+        error: error as Error,
+        success: false,
+      };
+    }
+  }
+
+  const signUp = async (email: string, password: string, fullName: string) => {
+    try {
+      const { error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            full_name: fullName,
+          },
+        },
+      })
+
+      return {
+        error,
+        success: !error,
+      }
+    } catch (error) {
+      return {
+        error: error as Error,
+        success: false,
+      }
+    }
+  }
+
+  const signOut = async () => {
+    await supabase.auth.signOut()
+    router.push("/admin/login")
+  }
+
+  const value = {
+    user,
+    session,
+    isLoading,
+    signIn,
+    signUp,
+    signOut,
+    isAdmin,
+  }
+
+  return <AdminAuthContext.Provider value={value}>{children}</AdminAuthContext.Provider>
+}
+
+export function useAdminAuth() {
+  const context = useContext(AdminAuthContext)
+  if (context === undefined) {
+    throw new Error("useAdminAuth must be used within an AdminAuthProvider")
   }
   return context
 }

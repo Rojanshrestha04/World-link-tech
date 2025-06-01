@@ -7,7 +7,7 @@ import { usePathname } from "next/navigation"
 import { Menu, X, ChevronDown, User, LogOut } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
-import { useAuth } from "@/context/auth-context"
+import { useUserAuth } from "@/context/auth-context"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -47,7 +47,7 @@ export default function SiteHeader() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [scrolled, setScrolled] = useState(false)
   const pathname = usePathname()
-  const { user, signOut } = useAuth()
+  const { user, signOut } = useUserAuth()
 
   useEffect(() => {
     const handleScroll = () => {

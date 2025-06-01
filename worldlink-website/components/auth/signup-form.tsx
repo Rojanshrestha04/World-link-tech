@@ -10,7 +10,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Input } from "@/components/ui/input"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { AlertCircle, Loader2 } from "lucide-react"
-import { useAuth } from "@/contexts/auth-context"
+import { useUserAuth } from "@/context/auth-context"
 
 const formSchema = z
   .object({
@@ -35,7 +35,7 @@ export default function SignupForm() {
   const [isLoading, setIsLoading] = useState(false)
   const [isSuccess, setIsSuccess] = useState(false)
   const router = useRouter()
-  const { signUp } = useAuth()
+  const { signUp } = useUserAuth()
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),

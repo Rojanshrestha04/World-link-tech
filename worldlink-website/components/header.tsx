@@ -31,7 +31,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { useAuth } from "@/contexts/auth-context"
+import { useAdminAuth } from "@/contexts/auth-context"
 
 const navigation = [
   {
@@ -89,7 +89,7 @@ const navigation = [
 export default function Header() {
   const pathname = usePathname()
   const [searchQuery, setSearchQuery] = useState("")
-  const { user, signOut, isAdmin } = useAuth()
+  const { user, signOut, isAdmin } = useAdminAuth()
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault()

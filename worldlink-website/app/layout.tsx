@@ -1,8 +1,8 @@
 import { Inter } from "next/font/google"
 import "./globals.css"
 import { ThemeProvider } from "@/components/theme-provider"
-import { AuthProvider } from "@/context/auth-context"
-import { AuthProviders } from "@/contexts/auth-context"
+import { UserAuthProvider } from "@/context/auth-context"
+import { AdminAuthProvider } from "@/contexts/auth-context"
 import SiteHeader from "@/components/site-header"
 import SiteFooter from "@/components/site-footer"
 
@@ -22,13 +22,13 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <body className={inter.className}>
         <ThemeProvider attribute="class" defaultTheme="light" enableSystem>
-          <AuthProviders>
-            <AuthProvider>
+          <AdminAuthProvider>
+            <UserAuthProvider>
               <SiteHeader />
               <main className="min-h-screen pt-16">{children}</main>
               <SiteFooter />
-            </AuthProvider>
-          </AuthProviders>
+            </UserAuthProvider>
+          </AdminAuthProvider>
         </ThemeProvider>
       </body>
     </html>
