@@ -1,5 +1,6 @@
 import AdminHeader from "@/components/admin/admin-header"
 import StudentManagementTable from "@/components/admin/student-management-table"
+import StudentsManagementClient from "./students-management-client"
 
 export const metadata = {
   title: "Student Management | Admin Dashboard",
@@ -7,18 +8,5 @@ export const metadata = {
 }
 
 export default function StudentsManagementPage() {
-  return (
-    <>
-      <AdminHeader
-        title="Student Management"
-        description="View and manage student information"
-        action={{
-          label: "Add New Student",
-          onClick: () => console.log("Add new student"),
-        }}
-      />
-
-      <StudentManagementTable />
-    </>
-  )
+  return <StudentsManagementClient />
 }

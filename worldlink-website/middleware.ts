@@ -1,42 +1,17 @@
 import type { NextRequest } from "next/server"
-import { createServerClient } from "@supabase/ssr"
 import { NextResponse } from "next/server"
+import { createMiddlewareClient } from "@supabase/auth-helpers-nextjs"
 
 export async function middleware(request: NextRequest) {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+  const res = NextResponse.next()
+  const supabase = createMiddlewareClient({ req: request, res })
 
-  if (!supabaseUrl || !supabaseAnonKey) {
-    throw new Error("Supabase environment variables are missing")
-  }
-
-  const supabase = createServerClient(supabaseUrl, supabaseAnonKey, {
-    cookies: {
-      get(name: string) {
-        return request.cookies.get(name)?.value
-      },
-      set(name: string, value: string, options: any) {
-        request.cookies.set({
-          name,
-          value,
-          ...options,
-        })
-      },
-      remove(name: string, options: any) {
-        request.cookies.set({
-          name,
-          value: "",
-          ...options,
-        })
-      },
-    },
-  })
-
+  // Check if we have a session
   const {
     data: { session },
   } = await supabase.auth.getSession()
 
-  // If no session and trying to access admin routes (except login), redirect to login
+  // If no session and trying to access admin routes, redirect to login
   if (
     !session &&
     request.nextUrl.pathname.startsWith("/admin") &&
@@ -52,7 +27,21 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL("/admin", request.url))
   }
 
-  return NextResponse.next()
+  // If session exists, check if user is admin
+  if (session) {
+    const { data: userData } = await supabase
+      .from("users")
+      .select("role")
+      .eq("id", session.user.id)
+      .single()
+
+    // If user is not admin and trying to access admin routes, redirect to home
+    if (userData?.role !== "admin" && request.nextUrl.pathname.startsWith("/admin")) {
+      return NextResponse.redirect(new URL("/", request.url))
+    }
+  }
+
+  return res
 }
 
 export const config = {

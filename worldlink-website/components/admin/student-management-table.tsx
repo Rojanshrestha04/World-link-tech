@@ -133,7 +133,11 @@ export default function StudentManagementTable() {
                   <TableCell>{student.email}</TableCell>
                   <TableCell>{student.phone}</TableCell>
                   <TableCell>{student.course}</TableCell>
-                  <TableCell>{new Date(student.enrollmentDate).toLocaleDateString()}</TableCell>
+                  <TableCell>{new Date(student.enrollmentDate).toLocaleDateString('en-GB', {
+                    day: '2-digit',
+                    month: '2-digit',
+                    year: 'numeric'
+                  })}</TableCell>
                   <TableCell>
                     <Badge
                       variant={

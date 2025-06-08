@@ -1,12 +1,14 @@
+'use client'
+
 import AdminHeader from "@/components/admin/admin-header"
 import UserManagementTable from "@/components/admin/user-management-table"
 
-export const metadata = {
-  title: "User Management | Admin Dashboard",
-  description: "Manage admin users for World Link Technical Training Institute",
-}
+// Client component wrapper
+function UserManagementClient() {
+  const handleAddUser = () => {
+    console.log("Add new user")
+  }
 
-export default function UserManagementPage() {
   return (
     <>
       <AdminHeader
@@ -14,11 +16,16 @@ export default function UserManagementPage() {
         description="Manage admin users and permissions"
         action={{
           label: "Add New User",
-          onClick: () => console.log("Add new user"),
+          onClick: handleAddUser,
         }}
       />
 
       <UserManagementTable />
     </>
   )
+}
+
+// Server component page
+export default function UserManagementPage() {
+  return <UserManagementClient />
 }

@@ -1,12 +1,10 @@
+'use client'
+
 import AdminHeader from "@/components/admin/admin-header"
 import GalleryManagement from "@/components/admin/gallery-management"
 
-export const metadata = {
-  title: "Gallery Management | Admin Dashboard",
-  description: "Manage gallery images for World Link Technical Training Institute",
-}
-
-export default function GalleryManagementPage() {
+// Client component wrapper
+function GalleryManagementClient() {
   return (
     <>
       <AdminHeader
@@ -21,4 +19,8 @@ export default function GalleryManagementPage() {
       <GalleryManagement />
     </>
   )
+}
+
+export default function GalleryManagementPage() {
+  return <GalleryManagementClient />
 }

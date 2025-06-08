@@ -48,9 +48,8 @@ export default function AdminLoginForm() {
         throw error || new Error("Login failed")
       }
 
-      // If authentication is successful, redirect to admin dashboard or callback URL
-      router.push(callbackUrl)
-      router.refresh()
+      // Use replace for navigation
+      router.replace(callbackUrl)
     } catch (err) {
       console.error("Login error:", err)
       if (err instanceof Error) {

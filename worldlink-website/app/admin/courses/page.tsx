@@ -1,5 +1,4 @@
-import AdminHeader from "@/components/admin/admin-header"
-import CourseManagementTable from "@/components/admin/course-management-table"
+import CoursesClientPage from "./courses-client"
 
 export const metadata = {
   title: "Course Management | Admin Dashboard",
@@ -7,18 +6,5 @@ export const metadata = {
 }
 
 export default function CoursesManagementPage() {
-  return (
-    <>
-      <AdminHeader
-        title="Course Management"
-        description="Add, edit, and manage training courses"
-        action={{
-          label: "Add New Course",
-          onClick: () => console.log("Add new course"),
-        }}
-      />
-
-      <CourseManagementTable />
-    </>
-  )
+  return <CoursesClientPage />
 }

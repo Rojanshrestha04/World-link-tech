@@ -190,29 +190,17 @@ export function AdminAuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const fetchSession = async () => {
       setIsLoading(true)
-
       try {
-        // Get session
-        const {
-          data: { session },
-          error,
-        } = await supabase.auth.getSession()
-
-        if (error) {
-          throw error
-        }
-
+        const { data: { session } } = await supabase.auth.getSession()
         if (session) {
           setSession(session)
           setUser(session.user)
-
           // Check if user is admin
           const { data: userData, error: userError } = await supabase
             .from("users")
             .select("role")
             .eq("id", session.user.id)
             .single()
-
           if (!userError && userData) {
             setIsAdmin(userData.role === "admin")
           }
@@ -223,16 +211,10 @@ export function AdminAuthProvider({ children }: { children: React.ReactNode }) {
         setIsLoading(false)
       }
     }
-
     fetchSession()
-
-    // Set up auth state listener
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       setSession(session)
       setUser(session?.user ?? null)
-
       if (session?.user) {
         // Check if user is admin
         const { data: userData, error: userError } = await supabase
@@ -240,17 +222,14 @@ export function AdminAuthProvider({ children }: { children: React.ReactNode }) {
           .select("role")
           .eq("id", session.user.id)
           .single()
-
         if (!userError && userData) {
           setIsAdmin(userData.role === "admin")
         }
       } else {
         setIsAdmin(false)
       }
-
       router.refresh()
     })
-
     return () => {
       subscription.unsubscribe()
     }
@@ -262,49 +241,15 @@ export function AdminAuthProvider({ children }: { children: React.ReactNode }) {
         email,
         password,
       })
-
-      if (error) {
-        return {
-          error,
-          success: false,
-        }
-      }
-
-      // Fetch the latest session after sign in
-      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-
-      if (sessionError || !session) {
-        await supabase.auth.signOut();
-        return {
-          error: new Error("Session not found after login"),
-          success: false,
-        };
-      }
-
-      // Verify admin role using the session's user ID
-      const { data: userData, error: userError } = await supabase
-        .from("users")
-        .select("role")
-        .eq("id", session.user.id)
-        .single();
-
-      if (userError || !userData || userData.role !== "admin") {
-        await supabase.auth.signOut();
-        return {
-          error: new Error("Unauthorized: Admin access required"),
-          success: false,
-        };
-      }
-
       return {
-        error: null,
-        success: true,
-      };
+        error,
+        success: !error,
+      }
     } catch (error) {
       return {
         error: error as Error,
         success: false,
-      };
+      }
     }
   }
 
@@ -319,7 +264,6 @@ export function AdminAuthProvider({ children }: { children: React.ReactNode }) {
           },
         },
       })
-
       return {
         error,
         success: !error,

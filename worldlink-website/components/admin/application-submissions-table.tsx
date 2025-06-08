@@ -57,11 +57,20 @@ export default function ApplicationSubmissionsTable() {
         .select("*")
         .order("created_at", { ascending: false })
 
-      if (error) throw error
-
+      if (error) {
+        console.error("Supabase error:", error)
+        throw error
+      }
+      if (!data) {
+        console.error("No data returned from Supabase", { data, error })
+      }
       setSubmissions(data as ApplicationSubmission[])
     } catch (error) {
       console.error("Error fetching applications:", error)
+      // Add extra debug info
+      if (typeof error === 'object' && error !== null) {
+        console.error("Error details:", JSON.stringify(error, null, 2))
+      }
     } finally {
       setIsLoading(false)
     }

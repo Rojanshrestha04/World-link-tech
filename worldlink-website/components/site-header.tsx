@@ -69,6 +69,16 @@ export default function SiteHeader() {
     return pathname.startsWith(href)
   }
 
+  const handleSignOut = async () => {
+    try {
+      await signOut()
+    } catch (error: unknown) {
+      console.error("Error signing out:", error instanceof Error ? error.message : String(error))
+      // Force refresh the page to ensure clean state
+      window.location.href = "/"
+    }
+  }
+
   return (
     <header
       className={cn(
@@ -166,7 +176,7 @@ export default function SiteHeader() {
                   </DropdownMenuItem>
                 )}
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={signOut} className="cursor-pointer hover:bg-gray-100 transition-colors duration-200">
+                <DropdownMenuItem onClick={handleSignOut} className="cursor-pointer hover:bg-gray-100 transition-colors duration-200">
                   <LogOut className="h-4 w-4 mr-2" />
                   Logout
                 </DropdownMenuItem>
@@ -293,7 +303,7 @@ export default function SiteHeader() {
                         </Link>
                       )}
                       <button
-                        onClick={signOut}
+                        onClick={handleSignOut}
                         className="flex w-full items-center rounded-lg px-3 py-2.5 text-base font-semibold leading-7 text-gray-900 hover:bg-gray-50 hover:text-blue-600 transition-colors duration-200"
                       >
                         <LogOut className="h-5 w-5 mr-2" />
