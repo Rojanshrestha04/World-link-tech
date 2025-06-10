@@ -11,9 +11,9 @@ interface AuthContextType {
   user: User | null
   session: Session | null
   isLoading: boolean
-  signIn: (email: string, password: string) => Promise<void>
-  signUp: (email: string, password: string, fullName: string) => Promise<void>
-  signOut: () => Promise<void>
+signIn: (email: string, password: string) => Promise<{ error: Error | null; success: boolean }>
+signUp: (email: string, password: string, fullName: string) => Promise<{ error: Error | null; success: boolean }>
+signOut: () => Promise<void>
   isAdmin: boolean
 }
 
