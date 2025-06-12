@@ -13,6 +13,8 @@ import {
   Menu,
   X,
   Mail,
+  FolderOpen,
+  Briefcase,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -34,12 +36,6 @@ const sidebarItems = [
     icon: BookOpen,
   },
   {
-    id: "students",
-    title: "Students",
-    href: "/admin/students",
-    icon: Users,
-  },
-  {
     id: "applications",
     title: "Applications",
     href: "/admin/applications",
@@ -56,6 +52,18 @@ const sidebarItems = [
     title: "Gallery",
     href: "/admin/gallery",
     icon: ImageIcon,
+  },
+  {
+    id: "resources",
+    title: "Resources",
+    href: "/admin/resources",
+    icon: FolderOpen,
+  },
+  {
+    id: "careers",
+    title: "Careers",
+    href: "/admin/careers",
+    icon: Briefcase,
   },
   {
     id: "inquiries",

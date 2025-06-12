@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useState, useEffect } from "react"
@@ -14,7 +15,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { CheckCircle, EyeIcon, MoreHorizontal, Search, Trash2, XCircle } from "lucide-react"
+import { EyeIcon, MoreHorizontal, Search, Trash2, CheckCircle, XCircle } from "lucide-react"
 import { getSupabaseBrowserClient } from "@/lib/supabase"
 import { format } from "date-fns"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
@@ -43,79 +44,107 @@ export default function ApplicationSubmissionsTable() {
   const [isLoading, setIsLoading] = useState(true)
   const [selectedSubmission, setSelectedSubmission] = useState<ApplicationSubmission | null>(null)
   const [isDialogOpen, setIsDialogOpen] = useState(false)
-  const supabase = getSupabaseBrowserClient()
 
+  // Fetch applications from database
   useEffect(() => {
-    fetchSubmissions()
+    fetchApplications()
   }, [])
 
-  const fetchSubmissions = async () => {
-    setIsLoading(true)
+  const fetchApplications = async () => {
     try {
+      setIsLoading(true)
+      const supabase = getSupabaseBrowserClient()
       const { data, error } = await supabase
-        .from("application_submissions")
-        .select("*")
-        .order("created_at", { ascending: false })
+        .from('application_submissions')
+        .select('*')
+        .order('created_at', { ascending: false })
 
       if (error) {
-        console.error("Supabase error:", error)
-        throw error
+        console.error('Error fetching applications:', error)
+        return
       }
-      if (!data) {
-        console.error("No data returned from Supabase", { data, error })
-      }
-      setSubmissions(data as ApplicationSubmission[])
+
+      setSubmissions(data || [])
     } catch (error) {
-      console.error("Error fetching applications:", error)
-      // Add extra debug info
-      if (typeof error === 'object' && error !== null) {
-        console.error("Error details:", JSON.stringify(error, null, 2))
-      }
+      console.error('Error fetching applications:', error)
     } finally {
       setIsLoading(false)
     }
   }
 
-  const updateApplicationStatus = async (id: string, status: "pending" | "approved" | "rejected") => {
+  const handleStatusUpdate = async (applicationId: string, newStatus: string) => {
     try {
-      const { error } = await supabase.from("application_submissions").update({ status }).eq("id", id)
+      const supabase = getSupabaseBrowserClient()
+      const { error } = await supabase
+        .from('application_submissions')
+        .update({ status: newStatus })
+        .eq('id', applicationId)
 
-      if (error) throw error
+      if (error) {
+        console.error('Error updating application status:', error)
+        return
+      }
 
-      // Update local state
-      setSubmissions(submissions.map((app) => (app.id === id ? { ...app, status } : app)))
+      // Refresh applications list
+      fetchApplications()
     } catch (error) {
-      console.error("Error updating application status:", error)
+      console.error('Error updating application status:', error)
     }
   }
 
-  const deleteApplication = async (id: string) => {
+  const handleDeleteApplication = async (applicationId: string) => {
+    if (!confirm('Are you sure you want to delete this application?')) return
+
     try {
-      const { error } = await supabase.from("application_submissions").delete().eq("id", id)
+      const supabase = getSupabaseBrowserClient()
+      const { error } = await supabase
+        .from('application_submissions')
+        .delete()
+        .eq('id', applicationId)
 
-      if (error) throw error
+      if (error) {
+        console.error('Error deleting application:', error)
+        alert('Failed to delete application')
+        return
+      }
 
-      // Update local state
-      setSubmissions(submissions.filter((app) => app.id !== id))
+      // Refresh applications list
+      fetchApplications()
     } catch (error) {
-      console.error("Error deleting application:", error)
+      console.error('Error deleting application:', error)
+      alert('Failed to delete application')
     }
   }
 
-  const viewApplication = (application: ApplicationSubmission) => {
-    setSelectedSubmission(application)
+  const handleViewDetails = (submission: ApplicationSubmission) => {
+    setSelectedSubmission(submission)
     setIsDialogOpen(true)
   }
 
   // Filter applications based on search and status
-  const filteredApplications = submissions.filter((application) => {
-    const matchesSearch =
-      application.full_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      application.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      application.course.toLowerCase().includes(searchQuery.toLowerCase())
-    const matchesStatus = statusFilter === "all" || application.status === statusFilter
+  const filteredSubmissions = submissions.filter((submission) => {
+    const matchesSearch = 
+      submission.full_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      submission.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      submission.course.toLowerCase().includes(searchQuery.toLowerCase())
+    const matchesStatus = statusFilter === "all" || submission.status === statusFilter
     return matchesSearch && matchesStatus
   })
+
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case "approved":
+        return <Badge className="bg-green-100 text-green-800">Approved</Badge>
+      case "rejected":
+        return <Badge className="bg-red-100 text-red-800">Rejected</Badge>
+      default:
+        return <Badge className="bg-yellow-100 text-yellow-800">Pending</Badge>
+    }
+  }
+
+  if (isLoading) {
+    return <div className="flex justify-center p-8">Loading applications...</div>
+  }
 
   return (
     <div className="space-y-4">
@@ -124,17 +153,17 @@ export default function ApplicationSubmissionsTable() {
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder="Search applications..."
-            className="pl-8"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-8"
           />
         </div>
         <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="w-full sm:w-[180px]">
-            <SelectValue placeholder="Status" />
+          <SelectTrigger className="w-[180px]">
+            <SelectValue placeholder="Filter by status" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">All Statuses</SelectItem>
+            <SelectItem value="all">All Status</SelectItem>
             <SelectItem value="pending">Pending</SelectItem>
             <SelectItem value="approved">Approved</SelectItem>
             <SelectItem value="rejected">Rejected</SelectItem>
@@ -146,73 +175,75 @@ export default function ApplicationSubmissionsTable() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Name</TableHead>
-              <TableHead>Email</TableHead>
+              <TableHead>Applicant</TableHead>
               <TableHead>Course</TableHead>
+              <TableHead>Education</TableHead>
               <TableHead>Preferred Time</TableHead>
-              <TableHead>Date</TableHead>
               <TableHead>Status</TableHead>
+              <TableHead>Applied Date</TableHead>
               <TableHead className="text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {isLoading ? (
-              <TableRow>
-                <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
-                  Loading applications...
-                </TableCell>
-              </TableRow>
-            ) : filteredApplications.length === 0 ? (
+            {filteredSubmissions.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
                   No applications found
                 </TableCell>
               </TableRow>
             ) : (
-              filteredApplications.map((application) => (
-                <TableRow key={application.id}>
-                  <TableCell className="font-medium">{application.full_name}</TableCell>
-                  <TableCell>{application.email}</TableCell>
-                  <TableCell>{application.course}</TableCell>
-                  <TableCell>{application.preferred_time}</TableCell>
-                  <TableCell>{format(new Date(application.created_at), "MMM d, yyyy")}</TableCell>
+              filteredSubmissions.map((submission) => (
+                <TableRow key={submission.id}>
                   <TableCell>
-                    <Badge
-                      variant={
-                        application.status === "approved"
-                          ? "success"
-                          : application.status === "rejected"
-                            ? "destructive"
-                            : "outline"
-                      }
-                    >
-                      {application.status.charAt(0).toUpperCase() + application.status.slice(1)}
-                    </Badge>
+                    <div>
+                      <div className="font-medium">{submission.full_name}</div>
+                      <div className="text-sm text-muted-foreground">{submission.email}</div>
+                      <div className="text-sm text-muted-foreground">{submission.phone}</div>
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant="outline">{submission.course}</Badge>
+                  </TableCell>
+                  <TableCell>{submission.education}</TableCell>
+                  <TableCell>{submission.preferred_time}</TableCell>
+                  <TableCell>{getStatusBadge(submission.status)}</TableCell>
+                  <TableCell>
+                    {format(new Date(submission.created_at), "MMM dd, yyyy")}
                   </TableCell>
                   <TableCell className="text-right">
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon">
-                          <MoreHorizontal className="h-4 w-4" />
+                        <Button variant="ghost" className="h-8 w-8 p-0">
                           <span className="sr-only">Open menu</span>
+                          <MoreHorizontal className="h-4 w-4" />
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
                         <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem onClick={() => viewApplication(application)}>
+                        <DropdownMenuItem onClick={() => handleViewDetails(submission)}>
                           <EyeIcon className="mr-2 h-4 w-4" />
                           View Details
                         </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => updateApplicationStatus(application.id, "approved")}>
-                          <CheckCircle className="mr-2 h-4 w-4 text-green-600" />
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem 
+                          onClick={() => handleStatusUpdate(submission.id, "approved")}
+                          disabled={submission.status === "approved"}
+                        >
+                          <CheckCircle className="mr-2 h-4 w-4" />
                           Approve
                         </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => updateApplicationStatus(application.id, "rejected")}>
-                          <XCircle className="mr-2 h-4 w-4 text-red-600" />
+                        <DropdownMenuItem 
+                          onClick={() => handleStatusUpdate(submission.id, "rejected")}
+                          disabled={submission.status === "rejected"}
+                        >
+                          <XCircle className="mr-2 h-4 w-4" />
                           Reject
                         </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => deleteApplication(application.id)}>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem 
+                          className="text-red-600"
+                          onClick={() => handleDeleteApplication(submission.id)}
+                        >
                           <Trash2 className="mr-2 h-4 w-4" />
                           Delete
                         </DropdownMenuItem>
@@ -228,99 +259,72 @@ export default function ApplicationSubmissionsTable() {
 
       {/* Application Details Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="max-w-3xl">
+        <DialogContent className="max-w-2xl">
           <DialogHeader>
             <DialogTitle>Application Details</DialogTitle>
             <DialogDescription>
-              Submitted on{" "}
-              {selectedSubmission && format(new Date(selectedSubmission.created_at), "MMMM d, yyyy 'at' h:mm a")}
+              Complete application information for {selectedSubmission?.full_name}
             </DialogDescription>
           </DialogHeader>
-
           {selectedSubmission && (
-            <div className="space-y-4 mt-4">
+            <div className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <h3 className="text-sm font-medium text-gray-500">Full Name</h3>
-                  <p className="mt-1">{selectedSubmission.full_name}</p>
+                  <label className="text-sm font-medium">Full Name</label>
+                  <p className="text-sm text-muted-foreground">{selectedSubmission.full_name}</p>
                 </div>
                 <div>
-                  <h3 className="text-sm font-medium text-gray-500">Email</h3>
-                  <p className="mt-1">{selectedSubmission.email}</p>
+                  <label className="text-sm font-medium">Email</label>
+                  <p className="text-sm text-muted-foreground">{selectedSubmission.email}</p>
                 </div>
                 <div>
-                  <h3 className="text-sm font-medium text-gray-500">Phone</h3>
-                  <p className="mt-1">{selectedSubmission.phone}</p>
+                  <label className="text-sm font-medium">Phone</label>
+                  <p className="text-sm text-muted-foreground">{selectedSubmission.phone}</p>
                 </div>
                 <div>
-                  <h3 className="text-sm font-medium text-gray-500">Date of Birth</h3>
-                  <p className="mt-1">{format(new Date(selectedSubmission.date_of_birth), "MMMM d, yyyy")}</p>
-                </div>
-                <div>
-                  <h3 className="text-sm font-medium text-gray-500">Gender</h3>
-                  <p className="mt-1">
-                    {selectedSubmission.gender.charAt(0).toUpperCase() + selectedSubmission.gender.slice(1)}
+                  <label className="text-sm font-medium">Date of Birth</label>
+                  <p className="text-sm text-muted-foreground">
+                    {format(new Date(selectedSubmission.date_of_birth), "MMM dd, yyyy")}
                   </p>
                 </div>
                 <div>
-                  <h3 className="text-sm font-medium text-gray-500">Education</h3>
-                  <p className="mt-1">{selectedSubmission.education}</p>
+                  <label className="text-sm font-medium">Gender</label>
+                  <p className="text-sm text-muted-foreground">{selectedSubmission.gender}</p>
+                </div>
+                <div>
+                  <label className="text-sm font-medium">Education</label>
+                  <p className="text-sm text-muted-foreground">{selectedSubmission.education}</p>
+                </div>
+                <div>
+                  <label className="text-sm font-medium">Course</label>
+                  <p className="text-sm text-muted-foreground">{selectedSubmission.course}</p>
+                </div>
+                <div>
+                  <label className="text-sm font-medium">Preferred Time</label>
+                  <p className="text-sm text-muted-foreground">{selectedSubmission.preferred_time}</p>
                 </div>
               </div>
-
               <div>
-                <h3 className="text-sm font-medium text-gray-500">Address</h3>
-                <p className="mt-1">{selectedSubmission.address}</p>
+                <label className="text-sm font-medium">Address</label>
+                <p className="text-sm text-muted-foreground">{selectedSubmission.address}</p>
               </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <h3 className="text-sm font-medium text-gray-500">Course</h3>
-                  <p className="mt-1">{selectedSubmission.course}</p>
-                </div>
-                <div>
-                  <h3 className="text-sm font-medium text-gray-500">Preferred Time</h3>
-                  <p className="mt-1">
-                    {selectedSubmission.preferred_time.charAt(0).toUpperCase() +
-                      selectedSubmission.preferred_time.slice(1)}
-                  </p>
-                </div>
-              </div>
-
               {selectedSubmission.how_did_you_hear && (
                 <div>
-                  <h3 className="text-sm font-medium text-gray-500">How did you hear about us?</h3>
-                  <p className="mt-1">{selectedSubmission.how_did_you_hear}</p>
+                  <label className="text-sm font-medium">How did you hear about us?</label>
+                  <p className="text-sm text-muted-foreground">{selectedSubmission.how_did_you_hear}</p>
                 </div>
               )}
-
               {selectedSubmission.message && (
                 <div>
-                  <h3 className="text-sm font-medium text-gray-500">Additional Message</h3>
-                  <div className="mt-1 p-4 bg-gray-50 rounded-md">
-                    <p className="whitespace-pre-wrap">{selectedSubmission.message}</p>
-                  </div>
+                  <label className="text-sm font-medium">Additional Message</label>
+                  <p className="text-sm text-muted-foreground">{selectedSubmission.message}</p>
                 </div>
               )}
-
-              <div className="flex justify-end space-x-2 pt-4">
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    updateApplicationStatus(selectedSubmission.id, "rejected")
-                    setIsDialogOpen(false)
-                  }}
-                >
-                  Reject
-                </Button>
-                <Button
-                  onClick={() => {
-                    updateApplicationStatus(selectedSubmission.id, "approved")
-                    setIsDialogOpen(false)
-                  }}
-                >
-                  Approve
-                </Button>
+              <div>
+                <label className="text-sm font-medium">Application Date</label>
+                <p className="text-sm text-muted-foreground">
+                  {format(new Date(selectedSubmission.created_at), "MMM dd, yyyy 'at' hh:mm a")}
+                </p>
               </div>
             </div>
           )}

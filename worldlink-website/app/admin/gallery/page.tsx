@@ -10,10 +10,6 @@ function GalleryManagementClient() {
       <AdminHeader
         title="Gallery Management"
         description="Upload and manage gallery images"
-        action={{
-          label: "Upload Images",
-          onClick: () => console.log("Upload images"),
-        }}
       />
 
       <GalleryManagement />

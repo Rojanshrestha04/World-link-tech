@@ -7,18 +7,10 @@ export default function CoursesClientPage() {
   const handleAddCourse = () => {
     console.log("Add new course")
   }
+  
 
   return (
     <>
-      <AdminHeader
-        title="Course Management"
-        description="Add, edit, and manage training courses"
-        action={{
-          label: "Add New Course",
-          onClick: handleAddCourse,
-        }}
-      />
-
       <CourseManagementTable />
     </>
   )

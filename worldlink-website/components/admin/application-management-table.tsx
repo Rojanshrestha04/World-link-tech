@@ -1,6 +1,7 @@
+
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -14,88 +15,153 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { CheckCircle, EyeIcon, MoreHorizontal, Search, XCircle } from "lucide-react"
+import { CheckCircle, EyeIcon, MoreHorizontal, Search, XCircle, Loader2 } from "lucide-react"
+import { getSupabaseBrowserClient } from "@/lib/supabase"
+import { useToast } from "@/hooks/use-toast"
 
-// Sample application data
-const applications = [
-  {
-    id: "APP-1234",
-    name: "Ramesh Sharma",
-    email: "ramesh.sharma@example.com",
-    phone: "9801234567",
-    course: "Computer Hardware & Networking",
-    date: "2025-04-15",
-    status: "pending",
-  },
-  {
-    id: "APP-1235",
-    name: "Sunita Gurung",
-    email: "sunita.gurung@example.com",
-    phone: "9807654321",
-    course: "Web Development",
-    date: "2025-04-14",
-    status: "approved",
-  },
-  {
-    id: "APP-1236",
-    name: "Bikash Thapa",
-    email: "bikash.thapa@example.com",
-    phone: "9812345678",
-    course: "Electrical House Wiring",
-    date: "2025-04-14",
-    status: "pending",
-  },
-  {
-    id: "APP-1237",
-    name: "Anita Rai",
-    email: "anita.rai@example.com",
-    phone: "9854321098",
-    course: "Mobile Phone Repair",
-    date: "2025-04-13",
-    status: "rejected",
-  },
-  {
-    id: "APP-1238",
-    name: "Deepak Karki",
-    email: "deepak.karki@example.com",
-    phone: "9876543210",
-    course: "Professional Cooking",
-    date: "2025-04-12",
-    status: "pending",
-  },
-  {
-    id: "APP-1239",
-    name: "Sarita Tamang",
-    email: "sarita.tamang@example.com",
-    phone: "9812345670",
-    course: "Computer Hardware & Networking",
-    date: "2025-04-11",
-    status: "approved",
-  },
-  {
-    id: "APP-1240",
-    name: "Rajesh Magar",
-    email: "rajesh.magar@example.com",
-    phone: "9854321090",
-    course: "Web Development",
-    date: "2025-04-10",
-    status: "pending",
-  },
-]
+interface ApplicationSubmission {
+  id: string
+  full_name: string
+  email: string
+  phone: string
+  address: string
+  date_of_birth: string
+  gender: string
+  education: string
+  course: string
+  preferred_time: string
+  how_did_you_hear?: string
+  message?: string
+  created_at: string
+  status: string
+}
 
 export default function ApplicationManagementTable() {
+  const [applications, setApplications] = useState<ApplicationSubmission[]>([])
+  const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState("")
   const [statusFilter, setStatusFilter] = useState("all")
+  const [updatingStatus, setUpdatingStatus] = useState<string | null>(null)
+  const { toast } = useToast()
+
+  // Fetch applications from database
+  const fetchApplications = async () => {
+    try {
+      const supabase = getSupabaseBrowserClient()
+      const { data, error } = await supabase
+        .from('application_submissions')
+        .select('*')
+        .order('created_at', { ascending: false })
+
+      if (error) {
+        console.error('Error fetching applications:', error)
+        toast({
+          title: "Error",
+          description: "Failed to fetch applications",
+          variant: "destructive",
+        })
+        return
+      }
+
+      setApplications(data || [])
+    } catch (error) {
+      console.error('Error:', error)
+      toast({
+        title: "Error",
+        description: "Failed to fetch applications",
+        variant: "destructive",
+      })
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // Update application status
+  const updateApplicationStatus = async (id: string, newStatus: string) => {
+    setUpdatingStatus(id)
+    try {
+      const supabase = getSupabaseBrowserClient()
+      const { error } = await supabase
+        .from('application_submissions')
+        .update({ status: newStatus })
+        .eq('id', id)
+
+      if (error) {
+        console.error('Error updating status:', error)
+        toast({
+          title: "Error",
+          description: "Failed to update application status",
+          variant: "destructive",
+        })
+        return
+      }
+
+      // Update local state
+      setApplications(prev => 
+        prev.map(app => 
+          app.id === id ? { ...app, status: newStatus } : app
+        )
+      )
+
+      toast({
+        title: "Success",
+        description: `Application status updated to ${newStatus}`,
+      })
+    } catch (error) {
+      console.error('Error:', error)
+      toast({
+        title: "Error",
+        description: "Failed to update application status",
+        variant: "destructive",
+      })
+    } finally {
+      setUpdatingStatus(null)
+    }
+  }
+
+  useEffect(() => {
+    fetchApplications()
+  }, [])
 
   // Filter applications based on search and status
   const filteredApplications = applications.filter((application) => {
-    const matchesSearch =
-      application.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    const matchesSearch = 
+      application.full_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       application.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      application.id.toLowerCase().includes(searchQuery.toLowerCase())
+      application.course.toLowerCase().includes(searchQuery.toLowerCase())
     const matchesStatus = statusFilter === "all" || application.status === statusFilter
     return matchesSearch && matchesStatus
   })
+
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case "approved":
+        return <Badge className="bg-green-100 text-green-800">Approved</Badge>
+      case "rejected":
+        return <Badge className="bg-red-100 text-red-800">Rejected</Badge>
+      case "pending":
+        return <Badge className="bg-yellow-100 text-yellow-800">Pending</Badge>
+      default:
+        return <Badge variant="secondary">{status}</Badge>
+    }
+  }
+
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    })
+  }
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center p-8">
+        <Loader2 className="h-8 w-8 animate-spin" />
+        <span className="ml-2">Loading applications...</span>
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-4">
@@ -110,11 +176,11 @@ export default function ApplicationManagementTable() {
           />
         </div>
         <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="w-full sm:w-[180px]">
-            <SelectValue placeholder="Status" />
+          <SelectTrigger className="w-[180px]">
+            <SelectValue placeholder="Filter by status" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">All Statuses</SelectItem>
+            <SelectItem value="all">All Status</SelectItem>
             <SelectItem value="pending">Pending</SelectItem>
             <SelectItem value="approved">Approved</SelectItem>
             <SelectItem value="rejected">Rejected</SelectItem>
@@ -126,12 +192,11 @@ export default function ApplicationManagementTable() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>ID</TableHead>
               <TableHead>Name</TableHead>
               <TableHead>Email</TableHead>
               <TableHead>Phone</TableHead>
               <TableHead>Course</TableHead>
-              <TableHead>Date</TableHead>
+              <TableHead>Date Applied</TableHead>
               <TableHead>Status</TableHead>
               <TableHead className="text-right">Actions</TableHead>
             </TableRow>
@@ -139,53 +204,50 @@ export default function ApplicationManagementTable() {
           <TableBody>
             {filteredApplications.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
+                <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
                   No applications found
                 </TableCell>
               </TableRow>
             ) : (
               filteredApplications.map((application) => (
                 <TableRow key={application.id}>
-                  <TableCell className="font-medium">{application.id}</TableCell>
-                  <TableCell>{application.name}</TableCell>
+                  <TableCell className="font-medium">{application.full_name}</TableCell>
                   <TableCell>{application.email}</TableCell>
                   <TableCell>{application.phone}</TableCell>
                   <TableCell>{application.course}</TableCell>
-                  <TableCell>{new Date(application.date).toLocaleDateString()}</TableCell>
-                  <TableCell>
-                    <Badge
-                      variant={
-                        application.status === "approved"
-                          ? "success"
-                          : application.status === "rejected"
-                            ? "destructive"
-                            : "outline"
-                      }
-                    >
-                      {application.status.charAt(0).toUpperCase() + application.status.slice(1)}
-                    </Badge>
-                  </TableCell>
+                  <TableCell>{formatDate(application.created_at)}</TableCell>
+                  <TableCell>{getStatusBadge(application.status)}</TableCell>
                   <TableCell className="text-right">
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon">
-                          <MoreHorizontal className="h-4 w-4" />
+                        <Button variant="ghost" className="h-8 w-8 p-0">
                           <span className="sr-only">Open menu</span>
+                          {updatingStatus === application.id ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <MoreHorizontal className="h-4 w-4" />
+                          )}
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
                         <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                        <DropdownMenuSeparator />
                         <DropdownMenuItem>
                           <EyeIcon className="mr-2 h-4 w-4" />
                           View Details
                         </DropdownMenuItem>
-                        <DropdownMenuItem>
-                          <CheckCircle className="mr-2 h-4 w-4 text-green-600" />
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem
+                          onClick={() => updateApplicationStatus(application.id, "approved")}
+                          disabled={updatingStatus === application.id}
+                        >
+                          <CheckCircle className="mr-2 h-4 w-4" />
                           Approve
                         </DropdownMenuItem>
-                        <DropdownMenuItem>
-                          <XCircle className="mr-2 h-4 w-4 text-red-600" />
+                        <DropdownMenuItem
+                          onClick={() => updateApplicationStatus(application.id, "rejected")}
+                          disabled={updatingStatus === application.id}
+                        >
+                          <XCircle className="mr-2 h-4 w-4" />
                           Reject
                         </DropdownMenuItem>
                       </DropdownMenuContent>

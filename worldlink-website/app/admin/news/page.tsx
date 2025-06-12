@@ -14,10 +14,6 @@ function NewsManagementClient() {
       <AdminHeader
         title="News & Events Management"
         description="Create and manage news articles and events"
-        action={{
-          label: "Add New Article",
-          onClick: handleAddArticle,
-        }}
       />
 
       <NewsManagementTable />
