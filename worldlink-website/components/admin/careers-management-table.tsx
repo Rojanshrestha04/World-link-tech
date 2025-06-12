@@ -284,7 +284,9 @@ export default function CareersManagement() {
           >
             <option value="">All Departments</option>
             {departments.map(dept => (
-              <option key={dept} value={dept}>{dept}</option>
+                          <option key={dept} value={dept}>{dept}</option>
+                        ))}{departments.map((dept, index) => (
+              <option key={`department-${index}`} value={dept}>{dept}</option>
             ))}
           </select>
 

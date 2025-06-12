@@ -5,7 +5,6 @@ CREATE INDEX idx_courses_slug ON courses(slug);
 CREATE INDEX idx_news_articles_slug ON news_articles(slug);
 CREATE INDEX idx_news_articles_category ON news_articles(category);
 CREATE INDEX idx_gallery_images_category ON gallery_images(category);
-CREATE INDEX idx_resources_category ON resources(category);
 CREATE INDEX idx_contact_submissions_status ON contact_submissions(status);
 CREATE INDEX idx_application_submissions_status ON application_submissions(status);
 

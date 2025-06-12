@@ -80,17 +80,6 @@ CREATE TABLE news_articles (
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- Create resources table
-CREATE TABLE resources (
-  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  title TEXT NOT NULL,
-  description TEXT NOT NULL,
-  file TEXT NOT NULL,
-  category TEXT NOT NULL,
-  date TEXT NOT NULL,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
-
 -- Create careers table
 CREATE TABLE careers (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,

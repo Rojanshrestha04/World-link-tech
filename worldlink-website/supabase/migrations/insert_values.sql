@@ -68,19 +68,6 @@ Eligibility criteria include financial need, academic background, and a demonstr
 
 Applications for the scholarship program are now open, with a deadline of April 30, 2025. Interested candidates can obtain application forms from our institute or download them from our website.', 'March 15, 2025', '/news-scholarship.png', 'Announcements');
 
--- Insert resources data
-INSERT INTO resources (title, description, file, category, date) VALUES
-('Annual Training Report 2024', 'Comprehensive report on training outcomes, student performance, and employment statistics for the year 2024.', '/resources/annual-report-2024.pdf', 'Reports', 'March 15, 2025'),
-('CTEVT Curriculum Guidelines', 'Official curriculum guidelines from CTEVT for vocational training programs in Nepal.', '/resources/ctevt-curriculum-guidelines.pdf', 'Curriculum', 'January 10, 2025'),
-('Student Handbook 2025', 'Comprehensive guide for students including rules, regulations, and resources available at the institute.', '/resources/student-handbook-2025.pdf', 'Publications', 'February 5, 2025'),
-('Admission Policy', 'Official policy document outlining admission requirements, procedures, and selection criteria.', '/resources/admission-policy.pdf', 'Policy', 'December 12, 2024'),
-('Computer Hardware & Networking Curriculum', 'Detailed curriculum for the Computer Hardware & Networking course including modules, topics, and assessment criteria.', '/resources/computer-hardware-networking-curriculum.pdf', 'Curriculum', 'January 25, 2025'),
-('Electrical House Wiring Curriculum', 'Detailed curriculum for the Electrical House Wiring course including modules, topics, and assessment criteria.', '/resources/electrical-house-wiring-curriculum.pdf', 'Curriculum', 'January 25, 2025'),
-('Scholarship Policy', 'Guidelines and criteria for scholarship applications and selection process.', '/resources/scholarship-policy.pdf', 'Policy', 'November 30, 2024'),
-('Industry Partnership Report', 'Report on industry partnerships, internship placements, and employment outcomes for graduates.', '/resources/industry-partnership-report.pdf', 'Reports', 'March 1, 2025'),
-('Academic Calendar 2025', 'Calendar of academic activities, holidays, and important dates for the year 2025.', '/resources/academic-calendar-2025.pdf', 'Publications', 'December 20, 2024'),
-('Student Code of Conduct', 'Guidelines for student behavior, disciplinary procedures, and ethical standards.', '/resources/student-code-of-conduct.pdf', 'Policy', 'January 5, 2025');
-
 
 -- Insert sample careers data
 INSERT INTO careers (title, slug, company, location, job_type, experience_level, salary_range, description, requirements, responsibilities, benefits, skills_required, application_deadline, contact_email, contact_phone, status, featured, remote_work) VALUES
