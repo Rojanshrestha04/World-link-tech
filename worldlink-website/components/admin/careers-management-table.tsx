@@ -1,9 +1,26 @@
-
 "use client";
 
 import { useState, useEffect } from 'react';
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
-import { Plus, Edit, Trash2, Search, Filter, MapPin, Clock, DollarSign, Users, Eye, EyeOff } from 'lucide-react';
+import { Plus, Edit, Trash2, Search, Filter, MapPin, Clock, DollarSign, Users, Eye, EyeOff, MoreHorizontal, Loader2 } from 'lucide-react';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { useToast } from "@/components/ui/use-toast"
+import { ToastAction } from "@/components/ui/toast"
 
 interface Career {
   id: number;
@@ -22,6 +39,26 @@ interface Career {
   positions_available: number;
   created_at: string;
   updated_at: string;
+  company: string;
+  contact_email: string;
+}
+
+interface CareerFormData {
+  title: string;
+  department: string;
+  location: string;
+  employment_type: 'full-time' | 'part-time' | 'contract' | 'internship';
+  experience_level: 'entry' | 'mid' | 'senior' | 'executive';
+  salary_range: string;
+  description: string;
+  requirements: string[];
+  responsibilities: string[];
+  benefits: string[];
+  application_deadline: string;
+  is_active: boolean;
+  positions_available: number;
+  company: string;
+  contact_email: string;
 }
 
 export default function CareersManagement() {
@@ -37,14 +74,17 @@ export default function CareersManagement() {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
 
+  // Toast state
+  const { toast } = useToast();
+
   const supabase = createClientComponentClient();
 
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<CareerFormData>({
     title: '',
     department: '',
     location: '',
-    employment_type: 'full-time' as const,
-    experience_level: 'entry' as const,
+    employment_type: 'full-time',
+    experience_level: 'entry',
     salary_range: '',
     description: '',
     requirements: [''],
@@ -52,7 +92,9 @@ export default function CareersManagement() {
     benefits: [''],
     application_deadline: '',
     is_active: true,
-    positions_available: 1
+    positions_available: 1,
+    company: '',
+    contact_email: ''
   });
 
   useEffect(() => {
@@ -69,8 +111,17 @@ export default function CareersManagement() {
 
       if (error) throw error;
       setCareers(data || []);
+      toast({
+        title: "Careers fetched successfully",
+        description: `Found ${data.length} careers.`,
+      });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to fetch careers');
+      toast({
+        title: "Error fetching careers",
+        description: err instanceof Error ? err.message : 'Failed to fetch careers',
+        variant: "destructive",
+      });
     } finally {
       setLoading(false);
     }
@@ -107,8 +158,17 @@ export default function CareersManagement() {
       await fetchCareers();
       resetForm();
       setShowModal(false);
+      toast({
+        title: "Career saved successfully",
+        description: editingCareer ? "Career has been updated." : "New career has been added.",
+      });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to save career');
+      toast({
+        title: "Failed to save career",
+        description: err instanceof Error ? err.message : 'Unknown error during save.',
+        variant: "destructive",
+      });
     } finally {
       setLoading(false);
     }
@@ -126,8 +186,17 @@ export default function CareersManagement() {
       
       if (error) throw error;
       await fetchCareers();
+      toast({
+        title: "Career deleted successfully",
+        description: "The career posting has been removed.",
+      });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to delete career');
+      toast({
+        title: "Failed to delete career",
+        description: err instanceof Error ? err.message : 'Unknown error during delete.',
+        variant: "destructive",
+      });
     } finally {
       setLoading(false);
     }
@@ -145,8 +214,17 @@ export default function CareersManagement() {
       
       if (error) throw error;
       await fetchCareers();
+      toast({
+        title: "Career status updated",
+        description: `Career is now ${career.is_active ? 'inactive' : 'active'}.`,
+      });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to update career status');
+      toast({
+        title: "Failed to update career status",
+        description: err instanceof Error ? err.message : 'Unknown error.',
+        variant: "destructive",
+      });
     }
   };
 
@@ -164,7 +242,9 @@ export default function CareersManagement() {
       benefits: [''],
       application_deadline: '',
       is_active: true,
-      positions_available: 1
+      positions_available: 1,
+      company: '',
+      contact_email: ''
     });
     setEditingCareer(null);
   };
@@ -172,19 +252,21 @@ export default function CareersManagement() {
   const handleEdit = (career: Career) => {
     setEditingCareer(career);
     setFormData({
-      title: career.title,
-      department: career.department,
-      location: career.location,
-        employment_type: 'full-time', 
-        experience_level: 'entry',
-      salary_range: career.salary_range,
-      description: career.description,
-      requirements: career.requirements.length > 0 ? career.requirements : [''],
-      responsibilities: career.responsibilities.length > 0 ? career.responsibilities : [''],
-      benefits: career.benefits.length > 0 ? career.benefits : [''],
-      application_deadline: career.application_deadline.split('T')[0],
-      is_active: career.is_active,
-      positions_available: career.positions_available
+      title: career.title || '',
+      department: career.department || '',
+      location: career.location || '',
+      employment_type: career.employment_type || 'full-time', 
+      experience_level: career.experience_level || 'entry',
+      salary_range: career.salary_range || '',
+      description: career.description || '',
+      requirements: career.requirements?.length > 0 ? career.requirements : [''],
+      responsibilities: career.responsibilities?.length > 0 ? career.responsibilities : [''],
+      benefits: career.benefits?.length > 0 ? career.benefits : [''],
+      application_deadline: career.application_deadline ? career.application_deadline.split('T')[0] : '',
+      is_active: career.is_active ?? true,
+      positions_available: career.positions_available || 1,
+      company: career.company || '',
+      contact_email: career.contact_email || ''
     });
     setShowModal(true);
   };
@@ -283,10 +365,8 @@ export default function CareersManagement() {
             className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           >
             <option value="">All Departments</option>
-            {departments.map(dept => (
-                          <option key={dept} value={dept}>{dept}</option>
-                        ))}{departments.map((dept, index) => (
-              <option key={`department-${index}`} value={dept}>{dept}</option>
+            {departments.map((dept, index) => (
+              <option key={`${dept}-${index}`} value={dept}>{dept}</option>
             ))}
           </select>
 
@@ -391,20 +471,49 @@ export default function CareersManagement() {
                     </button>
                   </td>
                   <td className="px-6 py-4 text-sm font-medium">
-                    <div className="flex space-x-2">
-                      <button
-                        onClick={() => handleEdit(career)}
-                        className="text-indigo-600 hover:text-indigo-900"
-                      >
-                        <Edit className="w-4 h-4" />
-                      </button>
-                      <button
-                        onClick={() => handleDelete(career.id)}
-                        className="text-red-600 hover:text-red-900"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" className="h-8 w-8 p-0">
+                          <span className="sr-only">Open menu</span>
+                          <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                        <DropdownMenuItem>
+                          <Eye className="mr-2 h-4 w-4" />
+                          View Career
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleEdit(career)}>
+                          <Edit className="mr-2 h-4 w-4" />
+                          Edit
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem
+                          onClick={() => toggleStatus(career)}
+                          className="text-blue-600"
+                        >
+                          {career.is_active ? (
+                            <>
+                              <EyeOff className="mr-2 h-4 w-4" />
+                              Deactivate
+                            </>
+                          ) : (
+                            <>
+                              <Eye className="mr-2 h-4 w-4" />
+                              Activate
+                            </>
+                          )}
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={() => handleDelete(career.id)}
+                          className="text-red-600"
+                        >
+                          <Trash2 className="mr-2 h-4 w-4" />
+                          Delete
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </td>
                 </tr>
               ))}
@@ -465,280 +574,290 @@ export default function CareersManagement() {
 
       {/* Modal */}
       {showModal && (
-        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-          <div className="relative top-20 mx-auto p-5 border w-11/12 max-w-4xl shadow-lg rounded-md bg-white">
-            <div className="mt-3">
-              <h3 className="text-lg font-medium text-gray-900 mb-4">
-                {editingCareer ? 'Edit Career' : 'Add New Career'}
-              </h3>
-              
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Job Title *
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      value={formData.title}
-                      onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Department *
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      value={formData.department}
-                      onChange={(e) => setFormData(prev => ({ ...prev, department: e.target.value }))}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Location *
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      value={formData.location}
-                      onChange={(e) => setFormData(prev => ({ ...prev, location: e.target.value }))}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Employment Type *
-                    </label>
-                    <select
-                      required
-                      value={formData.employment_type}
-                      onChange={(e) => setFormData(prev => ({ ...prev, employment_type: e.target.value as any }))}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    >
-                      <option value="full-time">Full Time</option>
-                      <option value="part-time">Part Time</option>
-                      <option value="contract">Contract</option>
-                      <option value="internship">Internship</option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Experience Level *
-                    </label>
-                    <select
-                      required
-                      value={formData.experience_level}
-                      onChange={(e) => setFormData(prev => ({ ...prev, experience_level: e.target.value as any }))}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    >
-                      <option value="entry">Entry Level</option>
-                      <option value="mid">Mid Level</option>
-                      <option value="senior">Senior Level</option>
-                      <option value="executive">Executive</option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Salary Range
-                    </label>
-                    <input
-                      type="text"
-                      value={formData.salary_range}
-                      onChange={(e) => setFormData(prev => ({ ...prev, salary_range: e.target.value }))}
-                      placeholder="e.g., $50,000 - $70,000"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Positions Available *
-                    </label>
-                    <input
-                      type="number"
-                      required
-                      min="1"
-                      value={formData.positions_available}
-                      onChange={(e) => setFormData(prev => ({ ...prev, positions_available: parseInt(e.target.value) }))}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Application Deadline *
-                    </label>
-                    <input
-                      type="date"
-                      required
-                      value={formData.application_deadline}
-                      onChange={(e) => setFormData(prev => ({ ...prev, application_deadline: e.target.value }))}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                  </div>
-                </div>
-
+        <Dialog open={showModal} onOpenChange={setShowModal}>
+          <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>{editingCareer ? 'Edit Career' : 'Add New Career'}</DialogTitle>
+            </DialogHeader>
+            
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Job Description *
-                  </label>
-                  <textarea
+                  <Label htmlFor="title">Job Title *</Label>
+                  <Input
+                    id="title"
                     required
-                    rows={4}
-                    value={formData.description}
-                    onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    value={formData.title}
+                    onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
+                    placeholder="Enter job title"
                   />
                 </div>
 
-                {/* Requirements */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Requirements
-                  </label>
-                  {formData.requirements.map((req, index) => (
-                    <div key={index} className="flex gap-2 mb-2">
-                      <input
-                        type="text"
-                        value={req}
-                        onChange={(e) => updateArrayField('requirements', index, e.target.value)}
-                        placeholder="Enter requirement"
-                        className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      />
-                      {formData.requirements.length > 1 && (
-                        <button
-                          type="button"
-                          onClick={() => removeArrayField('requirements', index)}
-                          className="px-3 py-2 text-red-600 hover:text-red-800"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      )}
-                    </div>
-                  ))}
-                  <button
-                    type="button"
-                    onClick={() => addArrayField('requirements')}
-                    className="text-blue-600 hover:text-blue-800 text-sm"
-                  >
-                    + Add Requirement
-                  </button>
-                </div>
-
-                {/* Responsibilities */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Responsibilities
-                  </label>
-                  {formData.responsibilities.map((resp, index) => (
-                    <div key={index} className="flex gap-2 mb-2">
-                      <input
-                        type="text"
-                        value={resp}
-                        onChange={(e) => updateArrayField('responsibilities', index, e.target.value)}
-                        placeholder="Enter responsibility"
-                        className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      />
-                      {formData.responsibilities.length > 1 && (
-                        <button
-                          type="button"
-                          onClick={() => removeArrayField('responsibilities', index)}
-                          className="px-3 py-2 text-red-600 hover:text-red-800"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      )}
-                    </div>
-                  ))}
-                  <button
-                    type="button"
-                    onClick={() => addArrayField('responsibilities')}
-                    className="text-blue-600 hover:text-blue-800 text-sm"
-                  >
-                    + Add Responsibility
-                  </button>
-                </div>
-
-                {/* Benefits */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Benefits
-                  </label>
-                  {formData.benefits.map((benefit, index) => (
-                    <div key={index} className="flex gap-2 mb-2">
-                      <input
-                        type="text"
-                        value={benefit}
-                        onChange={(e) => updateArrayField('benefits', index, e.target.value)}
-                        placeholder="Enter benefit"
-                        className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      />
-                      {formData.benefits.length > 1 && (
-                        <button
-                          type="button"
-                          onClick={() => removeArrayField('benefits', index)}
-                          className="px-3 py-2 text-red-600 hover:text-red-800"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      )}
-                    </div>
-                  ))}
-                  <button
-                    type="button"
-                    onClick={() => addArrayField('benefits')}
-                    className="text-blue-600 hover:text-blue-800 text-sm"
-                  >
-                    + Add Benefit
-                  </button>
-                </div>
-
-                <div className="flex items-center">
-                  <input
-                    type="checkbox"
-                    id="is_active"
-                    checked={formData.is_active}
-                    onChange={(e) => setFormData(prev => ({ ...prev, is_active: e.target.checked }))}
-                    className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                  <Label htmlFor="company">Company *</Label>
+                  <Input
+                    id="company"
+                    required
+                    value={formData.company}
+                    onChange={(e) => setFormData(prev => ({ ...prev, company: e.target.value }))}
+                    placeholder="Enter company name"
                   />
-                  <label htmlFor="is_active" className="ml-2 block text-sm text-gray-900">
-                    Active (visible to applicants)
-                  </label>
                 </div>
 
-                <div className="flex justify-end space-x-3 pt-4">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setShowModal(false);
-                      resetForm();
+                <div>
+                  <Label htmlFor="location">Location *</Label>
+                  <Input
+                    id="location"
+                    required
+                    value={formData.location}
+                    onChange={(e) => setFormData(prev => ({ ...prev, location: e.target.value }))}
+                    placeholder="Enter job location"
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="employment_type">Employment Type *</Label>
+                  <Select
+                    required
+                    value={formData.employment_type}
+                    onValueChange={(value) => setFormData(prev => ({ ...prev, employment_type: value as any }))}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select employment type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="full-time">Full Time</SelectItem>
+                      <SelectItem value="part-time">Part Time</SelectItem>
+                      <SelectItem value="contract">Contract</SelectItem>
+                      <SelectItem value="internship">Internship</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <Label htmlFor="experience_level">Experience Level *</Label>
+                  <Select
+                    required
+                    value={formData.experience_level}
+                    onValueChange={(value) => setFormData(prev => ({ ...prev, experience_level: value as any }))}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select experience level" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="entry">Entry Level</SelectItem>
+                      <SelectItem value="mid">Mid Level</SelectItem>
+                      <SelectItem value="senior">Senior Level</SelectItem>
+                      <SelectItem value="executive">Executive</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <Label htmlFor="contact_email">Contact Email *</Label>
+                  <Input
+                    id="contact_email"
+                    type="email"
+                    required
+                    value={formData.contact_email}
+                    onChange={(e) => setFormData(prev => ({ ...prev, contact_email: e.target.value }))}
+                    placeholder="Enter contact email"
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="salary_range">Salary Range</Label>
+                  <Input
+                    id="salary_range"
+                    type="text"
+                    value={formData.salary_range}
+                    onChange={(e) => setFormData(prev => ({ ...prev, salary_range: e.target.value }))}
+                    placeholder="e.g., $50,000 - $70,000"
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="positions_available">Positions Available</Label>
+                  <Input
+                    id="positions_available"
+                    type="number"
+                    min="1"
+                    value={typeof formData.positions_available !== 'number' || !Number.isFinite(formData.positions_available) ? '' : String(formData.positions_available)}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      const num = Number(value);
+                      setFormData(prev => ({
+                        ...prev,
+                        positions_available: (isNaN(num) || value === '') ? 1 : num
+                      }));
                     }}
-                    className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={loading}
-                    className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
-                  >
-                    {loading ? 'Saving...' : editingCareer ? 'Update Career' : 'Add Career'}
-                  </button>
+                  />
                 </div>
-              </form>
-            </div>
-          </div>
-        </div>
+
+                <div>
+                  <Label htmlFor="application_deadline">Application Deadline</Label>
+                  <Input
+                    id="application_deadline"
+                    type="date"
+                    value={formData.application_deadline}
+                    onChange={(e) => setFormData(prev => ({ ...prev, application_deadline: e.target.value }))}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <Label htmlFor="description">Job Description *</Label>
+                <Textarea
+                  id="description"
+                  required
+                  rows={4}
+                  value={formData.description}
+                  onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+                  placeholder="Enter job description"
+                />
+              </div>
+
+              {/* Requirements */}
+              <div>
+                <Label>Requirements</Label>
+                {formData.requirements.map((req, index) => (
+                  <div key={index} className="flex gap-2 mb-2">
+                    <Input
+                      type="text"
+                      value={req}
+                      onChange={(e) => updateArrayField('requirements', index, e.target.value)}
+                      placeholder="Enter requirement"
+                    />
+                    {formData.requirements.length > 1 && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => removeArrayField('requirements', index)}
+                        className="text-red-500 hover:text-red-700 h-10 w-10 p-0"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    )}
+                  </div>
+                ))}
+                <Button
+                  type="button"
+                  variant="link"
+                  onClick={() => addArrayField('requirements')}
+                  className="text-blue-600 hover:text-blue-800 p-0 h-auto"
+                >
+                  + Add Requirement
+                </Button>
+              </div>
+
+              {/* Responsibilities */}
+              <div>
+                <Label>Responsibilities</Label>
+                {formData.responsibilities.map((resp, index) => (
+                  <div key={index} className="flex gap-2 mb-2">
+                    <Input
+                      type="text"
+                      value={resp}
+                      onChange={(e) => updateArrayField('responsibilities', index, e.target.value)}
+                      placeholder="Enter responsibility"
+                    />
+                    {formData.responsibilities.length > 1 && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => removeArrayField('responsibilities', index)}
+                        className="text-red-500 hover:text-red-700 h-10 w-10 p-0"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    )}
+                  </div>
+                ))}
+                <Button
+                  type="button"
+                  variant="link"
+                  onClick={() => addArrayField('responsibilities')}
+                  className="text-blue-600 hover:text-blue-800 p-0 h-auto"
+                >
+                  + Add Responsibility
+                </Button>
+              </div>
+
+              {/* Benefits */}
+              <div>
+                <Label>Benefits</Label>
+                {formData.benefits.map((benefit, index) => (
+                  <div key={index} className="flex gap-2 mb-2">
+                    <Input
+                      type="text"
+                      value={benefit}
+                      onChange={(e) => updateArrayField('benefits', index, e.target.value)}
+                      placeholder="Enter benefit"
+                    />
+                    {formData.benefits.length > 1 && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => removeArrayField('benefits', index)}
+                        className="text-red-500 hover:text-red-700 h-10 w-10 p-0"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    )}
+                  </div>
+                ))}
+                <Button
+                  type="button"
+                  variant="link"
+                  onClick={() => addArrayField('benefits')}
+                  className="text-blue-600 hover:text-blue-800 p-0 h-auto"
+                >
+                  + Add Benefit
+                </Button>
+              </div>
+
+              <div className="flex items-center space-x-2">
+                <input
+                  type="checkbox"
+                  id="is_active"
+                  checked={formData.is_active}
+                  onChange={(e) => setFormData(prev => ({ ...prev, is_active: e.target.checked }))}
+                  className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                />
+                <Label htmlFor="is_active">Active (visible to applicants)</Label>
+              </div>
+
+              <div className="flex justify-end space-x-3 pt-4">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => {
+                    setShowModal(false);
+                    resetForm();
+                  }}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  disabled={loading}
+                >
+                  {loading ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      {"Saving..."}
+                    </>
+                  ) : (
+                    editingCareer ? "Update Career" : "Add Career"
+                  )}
+                </Button>
+              </div>
+            </form>
+          </DialogContent>
+        </Dialog>
       )}
     </div>
   );

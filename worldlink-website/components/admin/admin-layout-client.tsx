@@ -1,24 +1,14 @@
-
 'use client'
 
 import { AdminAuthProvider } from "@/contexts/auth-context"
 import AdminSidebar from "@/components/admin/admin-sidebar"
-import { usePathname } from "next/navigation"
+import { usePathname, useRouter } from "next/navigation"
 import { useAdminAuth } from "@/contexts/auth-context"
 
 function AdminLayoutContent({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
+  const router = useRouter()
   const { user, isAdmin, isLoading } = useAdminAuth()
-  const isLoginPage = pathname === '/admin/login'
-
-  if (isLoginPage) {
-    // Login page without sidebar
-    return (
-      <div className="min-h-screen">
-        {children}
-      </div>
-    )
-  }
 
   // Show loading state
   if (isLoading) {
@@ -34,23 +24,11 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
 
   // Show login prompt if not authenticated
   if (!user || !isAdmin) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold text-gray-900 mb-4">Access Denied</h1>
-          <p className="text-gray-600 mb-4">You need to be logged in as an admin to access this page.</p>
-          <a 
-            href="/admin/login" 
-            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
-          >
-            Go to Login
-          </a>
-        </div>
-      </div>
-    )
+    router.push('/admin-login')
+    return null
   }
 
-  // Regular admin pages with sidebar - proper layout without overlap
+  // Regular admin pages with sidebar
   return (
     <div className="flex h-screen bg-gray-50">
       <AdminSidebar />

@@ -192,7 +192,7 @@ export default function SiteHeader() {
                   Login
                 </Button>
               </Link>
-              <Link href="/admin/login">
+              <Link href="/admin-login">
                 <Button 
                   variant="ghost" 
                   className="hover:bg-gray-100 hover:text-blue-700 transition-all duration-200"
@@ -319,7 +319,7 @@ export default function SiteHeader() {
                         Login
                       </Link>
                       <Link
-                        href="/admin/login"
+                        href="/admin-login"
                         className="block rounded-lg px-3 py-2.5 text-base font-semibold leading-7 text-gray-900 hover:bg-gray-50 hover:text-blue-600 transition-colors duration-200"
                       >
                         Admin Login

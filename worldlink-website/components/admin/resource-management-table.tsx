@@ -1094,6 +1094,7 @@ export default function ResourcesManagement() {
                   <Label htmlFor="title">Title *</Label>
                   <Input
                     id="title"
+                    required
                     value={formData.title}
                     onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
                     placeholder="Enter resource title"
@@ -1102,6 +1103,7 @@ export default function ResourcesManagement() {
                 <div>
                   <Label htmlFor="category">Category *</Label>
                   <Select 
+                    required
                     value={formData.category} 
                     onValueChange={(value) => setFormData(prev => ({ ...prev, category: value as any }))}
                   >
@@ -1122,10 +1124,10 @@ export default function ResourcesManagement() {
                 <Label htmlFor="description">Description *</Label>
                 <Textarea
                   id="description"
+                  required
                   value={formData.description}
                   onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
                   placeholder="Enter resource description"
-                  rows={3}
                 />
               </div>
 
@@ -1133,6 +1135,7 @@ export default function ResourcesManagement() {
                 <Label htmlFor="date">Date *</Label>
                 <Input
                   id="date"
+                  required
                   type="date"
                   value={formData.date}
                   onChange={(e) => setFormData(prev => ({ ...prev, date: e.target.value }))}
@@ -1291,7 +1294,7 @@ export default function ResourcesManagement() {
           <div className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label htmlFor="edit-title">Title *</Label>
+                <Label htmlFor="edit-title">Title</Label>
                 <Input
                   id="edit-title"
                   value={formData.title}
@@ -1300,35 +1303,25 @@ export default function ResourcesManagement() {
                 />
               </div>
               <div>
-                <Label htmlFor="edit-category">Category *</Label>
-                <Select 
-                  value={formData.category} 
-                  onValueChange={(value) => setFormData(prev => ({ ...prev, category: value as any }))}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select category" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Publications">Publications</SelectItem>
-                    <SelectItem value="Policy">Policy</SelectItem>
-                    <SelectItem value="Reports">Reports</SelectItem>
-                    <SelectItem value="Curriculum">Curriculum</SelectItem>
-                  </SelectContent>
-                </Select>
+                <Label htmlFor="edit-description">Description</Label>
+                <Textarea
+                  id="edit-description"
+                  value={formData.description}
+                  onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+                  placeholder="Enter resource description"
+                />
+              </div>
+              <div>
+                <Label htmlFor="edit-category">Category</Label>
+                <Input
+                  id="edit-category"
+                  value={formData.category}
+                  onChange={(e) => setFormData(prev => ({ ...prev, category: e.target.value }))}
+                  placeholder="Enter resource category"
+                />
               </div>
             </div>
             
-            <div>
-              <Label htmlFor="edit-description">Description *</Label>
-              <Textarea
-                id="edit-description"
-                value={formData.description}
-                onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-                placeholder="Enter resource description"
-                rows={3}
-              />
-            </div>
-
             <div>
               <Label htmlFor="edit-date">Date *</Label>
               <Input

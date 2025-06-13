@@ -191,7 +191,10 @@ export function AdminAuthProvider({ children }: { children: React.ReactNode }) {
     const fetchSession = async () => {
       setIsLoading(true)
       try {
-        const { data: { session } } = await supabase.auth.getSession()
+        const { data: { session }, error } = await supabase.auth.getSession()
+        if (error) {
+            throw error
+        }
         if (session) {
           setSession(session)
           setUser(session.user)
@@ -201,20 +204,32 @@ export function AdminAuthProvider({ children }: { children: React.ReactNode }) {
             .select("role")
             .eq("id", session.user.id)
             .single()
+
           if (!userError && userData) {
             setIsAdmin(userData.role === "admin")
           }
+        } else {
+            setUser(null);
+            setSession(null);
+            setIsAdmin(false);
         }
       } catch (error) {
-        console.error("Error fetching session:", error)
+        console.error("Error fetching admin session:", error)
+        setUser(null);
+        setSession(null);
+        setIsAdmin(false);
       } finally {
         setIsLoading(false)
       }
     }
+
     fetchSession()
+
+    // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       setSession(session)
       setUser(session?.user ?? null)
+
       if (session?.user) {
         // Check if user is admin
         const { data: userData, error: userError } = await supabase
@@ -222,14 +237,20 @@ export function AdminAuthProvider({ children }: { children: React.ReactNode }) {
           .select("role")
           .eq("id", session.user.id)
           .single()
+
         if (!userError && userData) {
           setIsAdmin(userData.role === "admin")
+        } else if (userError) {
+            console.error("Auth state change - error fetching user role:", userError);
+            setIsAdmin(false);
         }
       } else {
         setIsAdmin(false)
       }
+
       router.refresh()
     })
+
     return () => {
       subscription.unsubscribe()
     }
@@ -278,7 +299,7 @@ export function AdminAuthProvider({ children }: { children: React.ReactNode }) {
 
   const signOut = async () => {
     await supabase.auth.signOut()
-    router.push("/admin/login")
+    router.push("/admin-login")
   }
 
   const value = {

@@ -1,9 +1,17 @@
 import Image from "next/image"
 import Link from "next/link"
-import { Clock, Calendar, Award } from "lucide-react"
+import { Clock, Calendar, Award, Pencil, Trash2, MoreHorizontal } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import type { Course } from "@/lib/types"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 
 interface CourseCardProps {
   course: Course
@@ -45,6 +53,28 @@ export default function CourseCard({ course }: CourseCardProps) {
         </div>
         <div className="flex justify-between items-center">
           <span className="text-blue-700 font-bold">NPR {course.price}</span>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" className="h-8 w-8 p-0">
+                <span className="sr-only">Open menu</span>
+                <MoreHorizontal className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuLabel>Actions</DropdownMenuLabel>
+              <DropdownMenuItem asChild>
+                <Link href={`/courses/edit-course?id=${course.id}`} className="flex items-center">
+                  <Pencil className="mr-2 h-4 w-4" /> Edit
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem asChild>
+                <Link href={`/courses/delete-course?id=${course.id}`} className="flex items-center text-red-600">
+                  <Trash2 className="mr-2 h-4 w-4" /> Delete
+                </Link>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
           <Link href={`/courses/${course.slug}`}>
             <Button size="sm">View Details</Button>
           </Link>

@@ -1,27 +1,3 @@
--- Insert courses data
-INSERT INTO courses (title, slug, description, category, duration, start_date, price, image, featured, prerequisites, curriculum) VALUES
-('Computer Hardware & Networking', 'hardware-networking', 'Learn to assemble, maintain, and troubleshoot computer systems and networks. This comprehensive course covers PC components, operating systems, network setup, and security fundamentals.', 'IT', '3 months', 'May 1, 2025', 15000, '/course-hardware.png', true, 
-'["Basic computer knowledge", "10th grade pass or equivalent"]',
-'[{"title": "Module 1: Computer Fundamentals", "topics": ["Introduction to Computer Systems", "Computer Components and Architecture", "BIOS and UEFI Configuration", "Operating System Installation"]}, {"title": "Module 2: Hardware Troubleshooting", "topics": ["Identifying Hardware Issues", "Component Replacement", "Preventive Maintenance", "Data Recovery Techniques"]}, {"title": "Module 3: Networking Fundamentals", "topics": ["Network Topologies and Types", "IP Addressing and Subnetting", "Router and Switch Configuration", "Network Security Basics"]}]'),
-
-('Electrical House Wiring', 'house-wiring', 'Master residential electrical wiring, installation of fixtures, and safety protocols with hands-on practice. Learn to install, maintain and repair electrical systems in residential buildings.', 'Electrical', '2 months', 'May 15, 2025', 12000, '/course-electrical.png', true,
-'["Basic understanding of electricity", "8th grade pass or equivalent"]',
-'[{"title": "Module 1: Electrical Basics", "topics": ["Electrical Theory and Safety", "Tools and Materials", "Reading Electrical Diagrams", "Electrical Codes and Standards"]}, {"title": "Module 2: Residential Wiring", "topics": ["Circuit Design and Installation", "Switch and Outlet Installation", "Lighting Fixtures", "Distribution Panels"]}, {"title": "Module 3: Testing and Troubleshooting", "topics": ["Using Multimeters and Testing Equipment", "Identifying Electrical Faults", "Repair Techniques", "Maintenance Procedures"]}]'),
-
-('Mobile Phone Repair', 'mobile-repair', 'Master smartphone diagnostics, component replacement, and software troubleshooting for various brands. Learn to repair common issues with smartphones and tablets.', 'IT', '2 months', 'June 1, 2025', 14000, '/course-mobile.png', true,
-'["Basic knowledge of smartphones", "8th grade pass or equivalent"]',
-'[{"title": "Module 1: Mobile Device Fundamentals", "topics": ["Smartphone Architecture", "Operating Systems Overview", "Tools and Equipment", "Safety Procedures"]}, {"title": "Module 2: Hardware Repair", "topics": ["Screen Replacement", "Battery Replacement", "Charging Port Repair", "Camera and Speaker Fixes"]}, {"title": "Module 3: Software Troubleshooting", "topics": ["OS Updates and Recovery", "Data Backup and Restoration", "Performance Optimization", "Common Software Issues"]}]'),
-
-('Professional Cooking', 'professional-cooking', 'Develop culinary skills including food preparation, cooking techniques, and kitchen management. Learn to prepare a variety of dishes and manage a professional kitchen.', 'Hospitality', '3 months', 'June 15, 2025', 18000, '/course-cooking.png', false,
-'["Interest in culinary arts", "10th grade pass or equivalent"]',
-'[{"title": "Module 1: Culinary Fundamentals", "topics": ["Kitchen Safety and Sanitation", "Knife Skills and Cutting Techniques", "Cooking Methods", "Food Presentation"]}, {"title": "Module 2: International Cuisine", "topics": ["Nepali Cuisine", "Asian Cuisine", "Continental Dishes", "Desserts and Baking"]}, {"title": "Module 3: Kitchen Management", "topics": ["Menu Planning", "Inventory Management", "Cost Control", "Team Coordination"]}]'),
-
-('Plumbing and Pipe Fitting', 'plumbing', 'Learn installation and repair of water supply systems, drainage, and fixtures for residential and commercial buildings. Master the skills needed for professional plumbing work.', 'Mechanical', '2 months', 'July 1, 2025', 13000, '/course-plumbing.png', false,
-'["Basic mechanical aptitude", "8th grade pass or equivalent"]', NULL),
-
-('Web Development', 'web-development', 'Learn to design and develop responsive websites using HTML, CSS, JavaScript, and popular frameworks. Build a portfolio of web projects and prepare for entry-level web development roles.', 'IT', '4 months', 'May 10, 2025', 20000, '/course-webdev.png', false,
-'["Basic computer knowledge", "10th grade pass or equivalent"]', NULL);
-
 -- Insert testimonials data
 INSERT INTO testimonials (name, position, quote, image) VALUES
 ('Ramesh Tamang', 'Electrical Technician at Nepal Electricity Authority', 'The electrical wiring course at World Link gave me practical skills that helped me secure a job at NEA. The hands-on training was invaluable.', '/success-story-1.png'),

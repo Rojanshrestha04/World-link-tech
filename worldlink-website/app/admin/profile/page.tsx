@@ -15,7 +15,7 @@ export default async function ProfilePage() {
   const session = await getSession()
 
   if (!session) {
-    redirect("/admin/login")
+    redirect("/admin-login")
   }
 
   const { user } = session

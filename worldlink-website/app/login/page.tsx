@@ -26,7 +26,7 @@ export default function LoginPage() {
               </Link>
             </p>
             <div className="mt-4">
-              <Link href="/admin/login">
+              <Link href="/admin-login">
                 <Button variant="outline" size="sm">
                   Admin Login
                 </Button>

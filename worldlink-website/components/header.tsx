@@ -285,41 +285,56 @@ export default function Header() {
               />
             </div>
           </form>
-          {user ? (
-            <div className="flex items-center gap-4">
-              {isAdmin && (
-                <Link href="/admin" className="text-sm font-medium text-blue-700 hover:text-blue-800">
-                  Admin Panel
-                </Link>
-              )}
+          <div className="flex items-center gap-4">
+            {isAdmin && (
+              <Link href="/admin" className="text-sm font-medium text-blue-700 hover:text-blue-800">
+                Admin Panel
+              </Link>
+            )}
+            {user && (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="sm" className="gap-2">
-                    <UserCircle className="h-5 w-5" />
-                    <span className="hidden sm:inline">{user.email}</span>
+                  <Button variant="ghost" className="flex items-center gap-2">
+                    {user.email} <ChevronDown className="h-4 w-4" />
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
+                <DropdownMenuContent className="w-56">
                   <DropdownMenuLabel>My Account</DropdownMenuLabel>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem asChild>
-                    <Link href="/profile">Profile</Link>
+                  <DropdownMenuItem>
+                    <Link href="/admin/profile" className="flex items-center">
+                      <UserCircle className="mr-2 h-4 w-4" />
+                      <span>Profile</span>
+                    </Link>
                   </DropdownMenuItem>
-                  <DropdownMenuItem asChild>
-                    <Link href="/my-courses">My Courses</Link>
+                  <DropdownMenuItem onClick={() => signOut()}>
+                    <Link href="#" className="flex items-center">
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        strokeWidth={1.5}
+                        stroke="currentColor"
+                        className="mr-2 h-4 w-4"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m3 0l3-3m0 0l-3-3m3 3H9"
+                        />
+                      </svg>
+                      <span>Logout</span>
+                    </Link>
                   </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={() => signOut()}>Log Out</DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
-            </div>
-          ) : (
-            <Link href="/auth/login">
-              <Button variant="outline" size="sm">
-                Log In
-              </Button>
-            </Link>
-          )}
+            )}
+            {!user && (
+              <Link href="/auth/login">
+                <Button>Login</Button>
+              </Link>
+            )}
+          </div>
         </div>
       </nav>
 

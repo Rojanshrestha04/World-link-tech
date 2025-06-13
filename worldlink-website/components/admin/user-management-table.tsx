@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useState, useEffect } from "react"
@@ -426,13 +425,14 @@ export default function UserManagementTable() {
                 <Input
                   id="email"
                   type="email"
+                  required
                   value={formData.email}
                   onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
                   placeholder="Enter email address"
                 />
               </div>
               <div>
-                <Label htmlFor="full_name">Full Name *</Label>
+                <Label htmlFor="full_name">Full Name</Label>
                 <Input
                   id="full_name"
                   value={formData.full_name}
@@ -441,14 +441,13 @@ export default function UserManagementTable() {
                 />
               </div>
               <div>
-                <Label htmlFor="role">Role</Label>
+                <Label htmlFor="role">Role *</Label>
                 <Select value={formData.role} onValueChange={(value) => setFormData(prev => ({ ...prev, role: value }))}>
                   <SelectTrigger>
                     <SelectValue placeholder="Select role" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="user">User</SelectItem>
-                    <SelectItem value="moderator">Moderator</SelectItem>
                     <SelectItem value="admin">Admin</SelectItem>
                   </SelectContent>
                 </Select>
@@ -582,7 +581,7 @@ export default function UserManagementTable() {
           </DialogHeader>
           <div className="space-y-4">
             <div>
-              <Label htmlFor="edit-email">Email *</Label>
+              <Label htmlFor="edit-email">Email</Label>
               <Input
                 id="edit-email"
                 type="email"
@@ -592,7 +591,7 @@ export default function UserManagementTable() {
               />
             </div>
             <div>
-              <Label htmlFor="edit-full_name">Full Name *</Label>
+              <Label htmlFor="edit-full_name">Full Name</Label>
               <Input
                 id="edit-full_name"
                 value={formData.full_name}
@@ -608,7 +607,6 @@ export default function UserManagementTable() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="user">User</SelectItem>
-                  <SelectItem value="moderator">Moderator</SelectItem>
                   <SelectItem value="admin">Admin</SelectItem>
                 </SelectContent>
               </Select>

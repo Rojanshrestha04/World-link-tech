@@ -29,24 +29,6 @@ CREATE TABLE application_submissions (
   status TEXT DEFAULT 'pending'
 );
 
--- Create courses table
-CREATE TABLE courses (
-  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  title TEXT NOT NULL,
-  slug TEXT UNIQUE NOT NULL,
-  description TEXT NOT NULL,
-  category TEXT NOT NULL,
-  duration TEXT NOT NULL,
-  start_date TEXT NOT NULL,
-  price INTEGER NOT NULL,
-  image TEXT NOT NULL,
-  featured BOOLEAN DEFAULT FALSE,
-  prerequisites JSONB,
-  curriculum JSONB,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
-
 -- Create testimonials table
 CREATE TABLE testimonials (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,

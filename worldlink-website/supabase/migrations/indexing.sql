@@ -1,7 +1,4 @@
 -- Create indexes for better query performance
-CREATE INDEX idx_courses_category ON courses(category);
-CREATE INDEX idx_courses_featured ON courses(featured);
-CREATE INDEX idx_courses_slug ON courses(slug);
 CREATE INDEX idx_news_articles_slug ON news_articles(slug);
 CREATE INDEX idx_news_articles_category ON news_articles(category);
 CREATE INDEX idx_gallery_images_category ON gallery_images(category);

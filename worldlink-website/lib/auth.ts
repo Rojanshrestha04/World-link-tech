@@ -117,15 +117,15 @@ export async function authMiddleware(request: NextRequest) {
   if (
     !session &&
     request.nextUrl.pathname.startsWith("/admin") &&
-    !request.nextUrl.pathname.startsWith("/admin/login")
+    !request.nextUrl.pathname.startsWith("/admin-login")
   ) {
-    const loginUrl = new URL("/admin/login", request.url)
+    const loginUrl = new URL("/admin-login", request.url)
     loginUrl.searchParams.set("callbackUrl", request.nextUrl.pathname)
     return NextResponse.redirect(loginUrl)
   }
 
   // If session exists and trying to access login page, redirect to admin dashboard
-  if (session && request.nextUrl.pathname === "/admin/login") {
+  if (session && request.nextUrl.pathname === "/admin-login") {
     return NextResponse.redirect(new URL("/admin", request.url))
   }
 

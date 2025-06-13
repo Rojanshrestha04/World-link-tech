@@ -12,37 +12,16 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
-import { LogOut, Settings, User } from "lucide-react"
+import { LogOut, Settings, User as LucideUserIcon } from "lucide-react"
+import { User as SupabaseUser } from "@supabase/supabase-js"
 
-interface UserData {
-  id: string
-  name: string
-  email: string
-  role: string
+interface UserProfileDropdownProps {
+  user: SupabaseUser | null;
+  isLoading: boolean;
 }
 
-export default function UserProfileDropdown() {
-  const [user, setUser] = useState<UserData | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
+export default function UserProfileDropdown({ user, isLoading }: UserProfileDropdownProps) {
   const router = useRouter()
-
-  useEffect(() => {
-    const fetchUser = async () => {
-      try {
-        const response = await fetch("/api/auth/user")
-        if (response.ok) {
-          const data = await response.json()
-          setUser(data.user)
-        }
-      } catch (error) {
-        console.error("Error fetching user:", error)
-      } finally {
-        setIsLoading(false)
-      }
-    }
-
-    fetchUser()
-  }, [])
 
   const handleLogout = async () => {
     try {
@@ -54,7 +33,7 @@ export default function UserProfileDropdown() {
       })
 
       if (response.ok) {
-        router.push("/admin/login")
+        router.push("/admin-login")
         router.refresh()
       }
     } catch (error) {
@@ -76,9 +55,11 @@ export default function UserProfileDropdown() {
     return null
   }
 
-  const initials = user.name
+  const displayName = user.user_metadata?.full_name || user.email || "";
+
+  const initials = (displayName)
     .split(" ")
-    .map((n) => n[0])
+    .map((n: string) => n[0])
     .join("")
     .toUpperCase()
 
@@ -94,13 +75,13 @@ export default function UserProfileDropdown() {
       <DropdownMenuContent align="end">
         <DropdownMenuLabel>
           <div className="flex flex-col space-y-1">
-            <p className="text-sm font-medium leading-none">{user.name}</p>
+            <p className="text-sm font-medium leading-none">{displayName}</p>
             <p className="text-xs leading-none text-muted-foreground">{user.email}</p>
           </div>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={() => router.push("/admin/profile")}>
-          <User className="mr-2 h-4 w-4" />
+          <LucideUserIcon className="mr-2 h-4 w-4" />
           <span>Profile</span>
         </DropdownMenuItem>
         <DropdownMenuItem onClick={() => router.push("/admin/settings")}>
@@ -109,7 +90,7 @@ export default function UserProfileDropdown() {
         </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={handleLogout}>
-          <LogOut className="mr-2 h-4 w-4" />
+          <LucideUserIcon className="mr-2 h-4 w-4" />
           <span>Log out</span>
         </DropdownMenuItem>
       </DropdownMenuContent>

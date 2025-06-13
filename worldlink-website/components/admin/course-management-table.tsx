@@ -1,9 +1,26 @@
-
 "use client";
 
 import { useState, useEffect, useRef } from 'react';
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
-import { Plus, Edit, Trash2, Search, Filter, Clock, Users, DollarSign, Calendar, Eye, EyeOff, BookOpen, Upload, X } from 'lucide-react';
+import { getSupabaseBrowserClient } from '@/lib/supabase';
+import { Plus, Edit, Trash2, Search, Filter, Clock, Users, DollarSign, Calendar, Eye, EyeOff, BookOpen, Upload, X, MoreHorizontal, Star, Loader2 } from 'lucide-react';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { useToast } from "@/components/ui/use-toast"
+import { ToastAction } from "@/components/ui/toast"
 
 interface Course {
   id: number;
@@ -16,7 +33,6 @@ interface Course {
   instructor_name: string;
   instructor_bio: string;
   max_students: number;
-  enrolled_students: number;
   start_date: string;
   end_date: string;
   schedule: string;
@@ -44,6 +60,9 @@ export default function CoursesManagement() {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
 
+  // Toast state
+  const { toast } = useToast();
+
   // File upload states
   const [selectedImageFile, setSelectedImageFile] = useState<File | null>(null);
   const [selectedSyllabusFile, setSelectedSyllabusFile] = useState<File | null>(null);
@@ -53,18 +72,18 @@ export default function CoursesManagement() {
   const imageFileInputRef = useRef<HTMLInputElement>(null);
   const syllabusFileInputRef = useRef<HTMLInputElement>(null);
 
-  const supabase = createClientComponentClient();
+  const supabase = getSupabaseBrowserClient();
 
   const [formData, setFormData] = useState({
     title: '',
     description: '',
     category: '',
-    level: 'beginner' as const,
+    level: 'beginner' as 'beginner' | 'intermediate' | 'advanced',
     duration_weeks: 1,
     price: 0,
     instructor_name: '',
     instructor_bio: '',
-    max_students: 20,
+    max_students: 1,
     start_date: '',
     end_date: '',
     schedule: '',
@@ -84,15 +103,29 @@ export default function CoursesManagement() {
   const fetchCourses = async () => {
     try {
       setLoading(true);
+      setError(null);
       const { data, error } = await supabase
         .from('courses')
         .select('*')
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching courses:', error);
+        throw new Error(error.message);
+      }
       setCourses(data || []);
+      toast({
+        title: "Courses fetched successfully",
+        description: `Found ${data.length} courses.`,
+      });
     } catch (err) {
+      console.error('Error in fetchCourses:', err);
       setError(err instanceof Error ? err.message : 'Failed to fetch courses');
+      toast({
+        title: "Error fetching courses",
+        description: err instanceof Error ? err.message : 'Failed to fetch courses',
+        variant: "destructive",
+      });
     } finally {
       setLoading(false);
     }
@@ -120,6 +153,7 @@ export default function CoursesManagement() {
     e.preventDefault();
     try {
       setLoading(true);
+      setError(null);
       setUploadingFiles(true);
       
       let imageUrl = formData.image_url;
@@ -127,12 +161,20 @@ export default function CoursesManagement() {
 
       // Upload image file if selected
       if (selectedImageFile) {
-        imageUrl = await uploadFile(selectedImageFile, 'course-files', 'images');
+        try {
+          imageUrl = await uploadFile(selectedImageFile, 'course-files', 'images');
+        } catch (err) {
+          throw new Error('Failed to upload image file: ' + (err instanceof Error ? err.message : 'Unknown error'));
+        }
       }
 
       // Upload syllabus file if selected
       if (selectedSyllabusFile) {
-        syllabusUrl = await uploadFile(selectedSyllabusFile, 'course-files', 'syllabus');
+        try {
+          syllabusUrl = await uploadFile(selectedSyllabusFile, 'course-files', 'syllabus');
+        } catch (err) {
+          throw new Error('Failed to upload syllabus file: ' + (err instanceof Error ? err.message : 'Unknown error'));
+        }
       }
       
       const courseData = {
@@ -142,7 +184,6 @@ export default function CoursesManagement() {
         prerequisites: formData.prerequisites.filter(req => req.trim() !== ''),
         learning_outcomes: formData.learning_outcomes.filter(outcome => outcome.trim() !== ''),
         course_materials: formData.course_materials.filter(material => material.trim() !== ''),
-        enrolled_students: editingCourse ? editingCourse.enrolled_students : 0,
         updated_at: new Date().toISOString()
       };
 
@@ -152,20 +193,36 @@ export default function CoursesManagement() {
           .update(courseData)
           .eq('id', editingCourse.id);
         
-        if (error) throw error;
+        if (error) {
+          console.error('Error updating course:', error);
+          throw new Error(error.message);
+        }
       } else {
         const { error } = await supabase
           .from('courses')
           .insert([{ ...courseData, created_at: new Date().toISOString() }]);
         
-        if (error) throw error;
+        if (error) {
+          console.error('Error creating course:', error);
+          throw new Error(error.message);
+        }
       }
 
       await fetchCourses();
       resetForm();
       setShowModal(false);
+      toast({
+        title: "Course saved successfully",
+        description: editingCourse ? "Course has been updated." : "New course has been added.",
+      });
     } catch (err) {
+      console.error('Error in handleSubmit:', err);
       setError(err instanceof Error ? err.message : 'Failed to save course');
+      toast({
+        title: "Failed to save course",
+        description: err instanceof Error ? err.message : 'Unknown error during save.',
+        variant: "destructive",
+      });
     } finally {
       setLoading(false);
       setUploadingFiles(false);
@@ -177,15 +234,29 @@ export default function CoursesManagement() {
     
     try {
       setLoading(true);
+      setError(null);
       const { error } = await supabase
         .from('courses')
         .delete()
         .eq('id', id);
       
-      if (error) throw error;
+      if (error) {
+        console.error('Error deleting course:', error);
+        throw new Error(error.message);
+      }
       await fetchCourses();
+      toast({
+        title: "Course deleted successfully",
+        description: "The course has been removed.",
+      });
     } catch (err) {
+      console.error('Error in handleDelete:', err);
       setError(err instanceof Error ? err.message : 'Failed to delete course');
+      toast({
+        title: "Failed to delete course",
+        description: err instanceof Error ? err.message : 'Unknown error during delete.',
+        variant: "destructive",
+      });
     } finally {
       setLoading(false);
     }
@@ -203,8 +274,17 @@ export default function CoursesManagement() {
       
       if (error) throw error;
       await fetchCourses();
+      toast({
+        title: "Course status updated",
+        description: `Course is now ${course.is_active ? 'inactive' : 'active'}.`,
+      });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to update course status');
+      toast({
+        title: "Failed to update course status",
+        description: err instanceof Error ? err.message : 'Unknown error.',
+        variant: "destructive",
+      });
     }
   };
 
@@ -220,8 +300,17 @@ export default function CoursesManagement() {
       
       if (error) throw error;
       await fetchCourses();
+      toast({
+        title: "Course featured status updated",
+        description: `Course is now ${course.is_featured ? 'regular' : 'featured'}.`,
+      });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to update featured status');
+      toast({
+        title: "Failed to update featured status",
+        description: err instanceof Error ? err.message : 'Unknown error.',
+        variant: "destructive",
+      });
     }
   };
 
@@ -230,12 +319,12 @@ export default function CoursesManagement() {
       title: '',
       description: '',
       category: '',
-      level: 'beginner',
+      level: 'beginner' as 'beginner' | 'intermediate' | 'advanced',
       duration_weeks: 1,
       price: 0,
       instructor_name: '',
       instructor_bio: '',
-      max_students: 20,
+      max_students: 1,
       start_date: '',
       end_date: '',
       schedule: '',
@@ -257,25 +346,25 @@ export default function CoursesManagement() {
   const handleEdit = (course: Course) => {
     setEditingCourse(course);
     setFormData({
-      title: course.title,
-      description: course.description,
-      category: course.category,
-      level: 'beginner',
-      duration_weeks: course.duration_weeks,
-      price: course.price,
-      instructor_name: course.instructor_name,
-      instructor_bio: course.instructor_bio,
-      max_students: course.max_students,
-      start_date: course.start_date.split('T')[0],
-      end_date: course.end_date.split('T')[0],
-      schedule: course.schedule,
-      prerequisites: course.prerequisites.length > 0 ? course.prerequisites : [''],
-      learning_outcomes: course.learning_outcomes.length > 0 ? course.learning_outcomes : [''],
-      course_materials: course.course_materials.length > 0 ? course.course_materials : [''],
-      is_active: course.is_active,
-      is_featured: course.is_featured,
-      image_url: course.image_url,
-      syllabus_url: course.syllabus_url
+      title: course.title || '',
+      description: course.description || '',
+      category: course.category || '',
+      level: course.level || 'beginner',
+      duration_weeks: course.duration_weeks || 1,
+      price: course.price || 0,
+      instructor_name: course.instructor_name || '',
+      instructor_bio: course.instructor_bio || '',
+      max_students: course.max_students || 1,
+      start_date: course.start_date ? course.start_date.split('T')[0] : '',
+      end_date: course.end_date ? course.end_date.split('T')[0] : '',
+      schedule: course.schedule || '',
+      prerequisites: course.prerequisites?.length > 0 ? course.prerequisites : [''],
+      learning_outcomes: course.learning_outcomes?.length > 0 ? course.learning_outcomes : [''],
+      course_materials: course.course_materials?.length > 0 ? course.course_materials : [''],
+      is_active: course.is_active ?? true,
+      is_featured: course.is_featured ?? false,
+      image_url: course.image_url || '',
+      syllabus_url: course.syllabus_url || ''
     });
     setShowModal(true);
   };
@@ -507,7 +596,7 @@ export default function CoursesManagement() {
                   <td className="px-6 py-4">
                     <div className="text-sm text-gray-900 flex items-center gap-1">
                       <Users className="w-3 h-3" />
-                      {course.enrolled_students}/{course.max_students} students
+                      {course.max_students} students
                     </div>
                     <div className="text-sm text-gray-500 flex items-center gap-1">
                       <Clock className="w-3 h-3" />
@@ -559,20 +648,65 @@ export default function CoursesManagement() {
                     </div>
                   </td>
                   <td className="px-6 py-4 text-sm font-medium">
-                    <div className="flex space-x-2">
-                      <button
-                        onClick={() => handleEdit(course)}
-                        className="text-indigo-600 hover:text-indigo-900"
-                      >
-                        <Edit className="w-4 h-4" />
-                      </button>
-                      <button
-                        onClick={() => handleDelete(course.id)}
-                        className="text-red-600 hover:text-red-900"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" className="h-8 w-8 p-0">
+                          <span className="sr-only">Open menu</span>
+                          <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                        <DropdownMenuItem>
+                          <Eye className="mr-2 h-4 w-4" />
+                          View Course
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleEdit(course)}>
+                          <Edit className="mr-2 h-4 w-4" />
+                          Edit
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem
+                          onClick={() => toggleStatus(course)}
+                          className="text-blue-600"
+                        >
+                          {course.is_active ? (
+                            <>
+                              <EyeOff className="mr-2 h-4 w-4" />
+                              Deactivate
+                            </>
+                          ) : (
+                            <>
+                              <Eye className="mr-2 h-4 w-4" />
+                              Activate
+                            </>
+                          )}
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={() => toggleFeatured(course)}
+                          className="text-yellow-600"
+                        >
+                          {course.is_featured ? (
+                            <>
+                              <Star className="mr-2 h-4 w-4" />
+                              Remove Featured
+                            </>
+                          ) : (
+                            <>
+                              <Star className="mr-2 h-4 w-4" />
+                              Make Featured
+                            </>
+                          )}
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={() => handleDelete(course.id)}
+                          className="text-red-600"
+                        >
+                          <Trash2 className="mr-2 h-4 w-4" />
+                          Delete
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </td>
                 </tr>
               ))}
@@ -633,418 +767,409 @@ export default function CoursesManagement() {
 
       {/* Modal */}
       {showModal && (
-        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-          <div className="relative top-20 mx-auto p-5 border w-11/12 max-w-6xl shadow-lg rounded-md bg-white">
-            <div className="mt-3">
-              <h3 className="text-lg font-medium text-gray-900 mb-4">
-                {editingCourse ? 'Edit Course' : 'Add New Course'}
-              </h3>
-              
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Course Title *
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      value={formData.title}
-                      onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Category *
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      value={formData.category}
-                      onChange={(e) => setFormData(prev => ({ ...prev, category: e.target.value }))}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Level *
-                    </label>
-                    <select
-                      required
-                      value={formData.level}
-                      onChange={(e) => setFormData(prev => ({ ...prev, level: e.target.value as any }))}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    >
-                      <option value="beginner">Beginner</option>
-                      <option value="intermediate">Intermediate</option>
-                      <option value="advanced">Advanced</option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Duration (weeks) *
-                    </label>
-                    <input
-                      type="number"
-                      required
-                      min="1"
-                      value={formData.duration_weeks}
-                      onChange={(e) => setFormData(prev => ({ ...prev, duration_weeks: parseInt(e.target.value) }))}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Price ($) *
-                    </label>
-                    <input
-                      type="number"
-                      required
-                      min="0"
-                      step="0.01"
-                      value={formData.price}
-                      onChange={(e) => setFormData(prev => ({ ...prev, price: parseFloat(e.target.value) }))}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Max Students *
-                    </label>
-                    <input
-                      type="number"
-                      required
-                      min="1"
-                      value={formData.max_students}
-                      onChange={(e) => setFormData(prev => ({ ...prev, max_students: parseInt(e.target.value) }))}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Start Date *
-                    </label>
-                    <input
-                      type="date"
-                      required
-                      value={formData.start_date}
-                      onChange={(e) => setFormData(prev => ({ ...prev, start_date: e.target.value }))}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      End Date *
-                    </label>
-                    <input
-                      type="date"
-                      required
-                      value={formData.end_date}
-                      onChange={(e) => setFormData(prev => ({ ...prev, end_date: e.target.value }))}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Instructor Name *
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      value={formData.instructor_name}
-                      onChange={(e) => setFormData(prev => ({ ...prev, instructor_name: e.target.value }))}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Schedule
-                    </label>
-                    <input
-                      type="text"
-                      value={formData.schedule}
-                      onChange={(e) => setFormData(prev => ({ ...prev, schedule: e.target.value }))}
-                      placeholder="e.g., Mon-Wed-Fri 10:00-12:00"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                  </div>
-
-                  {/* Course Image File Upload */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Course Image
-                    </label>
-                    <div className="space-y-2">
-                      <input
-                        type="file"
-                        ref={imageFileInputRef}
-                        onChange={handleImageFileSelect}
-                        accept="image/*"
-                        className="hidden"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => imageFileInputRef.current?.click()}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md text-left text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 flex items-center gap-2"
-                      >
-                        <Upload className="w-4 h-4" />
-                        Choose Image File
-                      </button>
-                      {selectedImageFile && (
-                        <div className="flex items-center justify-between bg-blue-50 px-3 py-2 rounded-md">
-                          <span className="text-sm text-blue-700 truncate">
-                            {selectedImageFile.name}
-                          </span>
-                          <button
-                            type="button"
-                            onClick={() => removeSelectedFile('image')}
-                            className="text-red-500 hover:text-red-700"
-                          >
-                            <X className="w-4 h-4" />
-                          </button>
-                        </div>
-                      )}
-                      {editingCourse && formData.image_url && !selectedImageFile && (
-                        <div className="text-sm text-gray-500">
-                          Current: <a href={formData.image_url} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">View current image</a>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Syllabus File Upload */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Syllabus Document
-                    </label>
-                    <div className="space-y-2">
-                      <input
-                        type="file"
-                        ref={syllabusFileInputRef}
-                        onChange={handleSyllabusFileSelect}
-                        accept=".pdf,.doc,.docx"
-                        className="hidden"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => syllabusFileInputRef.current?.click()}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md text-left text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 flex items-center gap-2"
-                      >
-                        <Upload className="w-4 h-4" />
-                        Choose Syllabus File
-                      </button>
-                      {selectedSyllabusFile && (
-                        <div className="flex items-center justify-between bg-blue-50 px-3 py-2 rounded-md">
-                          <span className="text-sm text-blue-700 truncate">
-                            {selectedSyllabusFile.name}
-                          </span>
-                          <button
-                            type="button"
-                            onClick={() => removeSelectedFile('syllabus')}
-                            className="text-red-500 hover:text-red-700"
-                          >
-                            <X className="w-4 h-4" />
-                          </button>
-                        </div>
-                      )}
-                      {editingCourse && formData.syllabus_url && !selectedSyllabusFile && (
-                        <div className="text-sm text-gray-500">
-                          Current: <a href={formData.syllabus_url} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">View current syllabus</a>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-
+        <Dialog open={showModal} onOpenChange={setShowModal}>
+          <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>{editingCourse ? 'Edit Course' : 'Add New Course'}</DialogTitle>
+            </DialogHeader>
+            
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Course Description *
-                  </label>
-                  <textarea
-                    required
-                    rows={4}
-                    value={formData.description}
-                    onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  <Label htmlFor="title">Course Title *</Label>
+                  <Input
+                    id="title"
+                    value={formData.title}
+                    onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
+                    placeholder="Enter course title"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Instructor Bio
-                  </label>
-                  <textarea
-                    rows={3}
-                    value={formData.instructor_bio}
-                    onChange={(e) => setFormData(prev => ({ ...prev, instructor_bio: e.target.value }))}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  <Label htmlFor="category">Category *</Label>
+                  <Input
+                    id="category"
+                    value={formData.category}
+                    onChange={(e) => setFormData(prev => ({ ...prev, category: e.target.value }))}
+                    placeholder="Enter category"
                   />
                 </div>
 
-                {/* Prerequisites */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Prerequisites
-                  </label>
-                  {formData.prerequisites.map((prereq, index) => (
-                    <div key={index} className="flex gap-2 mb-2">
-                      <input
-                        type="text"
-                        value={prereq}
-                        onChange={(e) => updateArrayField('prerequisites', index, e.target.value)}
-                        placeholder="Enter prerequisite"
-                        className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      />
-                      {formData.prerequisites.length > 1 && (
-                        <button
-                          type="button"
-                          onClick={() => removeArrayField('prerequisites', index)}
-                          className="px-3 py-2 text-red-600 hover:text-red-800"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      )}
-                    </div>
-                  ))}
-                  <button
-                    type="button"
-                    onClick={() => addArrayField('prerequisites')}
-                    className="text-blue-600 hover:text-blue-800 text-sm"
+                  <Label htmlFor="level">Level *</Label>
+                  <Select
+                    value={formData.level}
+                    onValueChange={(value) => setFormData(prev => ({ ...prev, level: value as any }))}
                   >
-                    + Add Prerequisite
-                  </button>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select level" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="beginner">Beginner</SelectItem>
+                      <SelectItem value="intermediate">Intermediate</SelectItem>
+                      <SelectItem value="advanced">Advanced</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
 
-                {/* Learning Outcomes */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Learning Outcomes
-                  </label>
-                  {formData.learning_outcomes.map((outcome, index) => (
-                    <div key={index} className="flex gap-2 mb-2">
-                      <input
-                        type="text"
-                        value={outcome}
-                        onChange={(e) => updateArrayField('learning_outcomes', index, e.target.value)}
-                        placeholder="Enter learning outcome"
-                        className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      />
-                      {formData.learning_outcomes.length > 1 && (
-                        <button
-                          type="button"
-                          onClick={() => removeArrayField('learning_outcomes', index)}
-                          className="px-3 py-2 text-red-600 hover:text-red-800"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      )}
-                    </div>
-                  ))}
-                  <button
-                    type="button"
-                    onClick={() => addArrayField('learning_outcomes')}
-                    className="text-blue-600 hover:text-blue-800 text-sm"
-                  >
-                    + Add Learning Outcome
-                  </button>
-                </div>
-
-                {/* Course Materials */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Course Materials
-                  </label>
-                  {formData.course_materials.map((material, index) => (
-                    <div key={index} className="flex gap-2 mb-2">
-                      <input
-                        type="text"
-                        value={material}
-                        onChange={(e) => updateArrayField('course_materials', index, e.target.value)}
-                        placeholder="Enter course material"
-                        className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      />
-                      {formData.course_materials.length > 1 && (
-                        <button
-                          type="button"
-                          onClick={() => removeArrayField('course_materials', index)}
-                          className="px-3 py-2 text-red-600 hover:text-red-800"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      )}
-                    </div>
-                  ))}
-                  <button
-                    type="button"
-                    onClick={() => addArrayField('course_materials')}
-                    className="text-blue-600 hover:text-blue-800 text-sm"
-                  >
-                    + Add Course Material
-                  </button>
-                </div>
-
-                <div className="flex items-center space-x-4">
-                  <div className="flex items-center">
-                    <input
-                      type="checkbox"
-                      id="is_active"
-                      checked={formData.is_active}
-                      onChange={(e) => setFormData(prev => ({ ...prev, is_active: e.target.checked }))}
-                      className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                    />
-                    <label htmlFor="is_active" className="ml-2 block text-sm text-gray-900">
-                      Active (visible to students)
-                    </label>
-                  </div>
-
-                  <div className="flex items-center">
-                    <input
-                      type="checkbox"
-                      id="is_featured"
-                      checked={formData.is_featured}
-                      onChange={(e) => setFormData(prev => ({ ...prev, is_featured: e.target.checked }))}
-                      className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                    />
-                    <label htmlFor="is_featured" className="ml-2 block text-sm text-gray-900">
-                      Featured Course
-                    </label>
-                  </div>
-                </div>
-
-                <div className="flex justify-end space-x-3 pt-4">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setShowModal(false);
-                      resetForm();
+                  <Label htmlFor="duration">Duration (weeks) *</Label>
+                  <Input
+                    id="duration"
+                    type="number"
+                    min="1"
+                    value={typeof formData.duration_weeks !== 'number' || !Number.isFinite(formData.duration_weeks) ? '' : String(formData.duration_weeks)}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      const num = Number(value);
+                      setFormData(prev => ({
+                        ...prev,
+                        duration_weeks: (isNaN(num) || value === '') ? 1 : num
+                      }));
                     }}
-                    className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={loading || uploadingFiles}
-                    className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 flex items-center gap-2"
-                  >
-                    {uploadingFiles && <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>}
-                    {loading || uploadingFiles ? 'Saving...' : editingCourse ? 'Update Course' : 'Add Course'}
-                  </button>
+                  />
                 </div>
-              </form>
-            </div>
-          </div>
-        </div>
+
+                <div>
+                  <Label htmlFor="price">Price ($) *</Label>
+                  <Input
+                    id="price"
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={typeof formData.price !== 'number' || !Number.isFinite(formData.price) ? '' : String(formData.price)}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      const num = Number(value);
+                      setFormData(prev => ({
+                        ...prev,
+                        price: (isNaN(num) || value === '') ? 0 : num
+                      }));
+                    }}
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="max_students">Max Students *</Label>
+                  <Input
+                    id="max_students"
+                    type="number"
+                    min="1"
+                    value={typeof formData.max_students !== 'number' || !Number.isFinite(formData.max_students) ? '' : String(formData.max_students)}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      const num = Number(value);
+                      setFormData(prev => ({
+                        ...prev,
+                        max_students: (isNaN(num) || value === '') ? 1 : num
+                      }));
+                    }}
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="start_date">Start Date *</Label>
+                  <Input
+                    id="start_date"
+                    type="date"
+                    value={formData.start_date}
+                    onChange={(e) => setFormData(prev => ({ ...prev, start_date: e.target.value }))}
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="end_date">End Date *</Label>
+                  <Input
+                    id="end_date"
+                    type="date"
+                    value={formData.end_date}
+                    onChange={(e) => setFormData(prev => ({ ...prev, end_date: e.target.value }))}
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="instructor_name">Instructor Name *</Label>
+                  <Input
+                    id="instructor_name"
+                    value={formData.instructor_name}
+                    onChange={(e) => setFormData(prev => ({ ...prev, instructor_name: e.target.value }))}
+                    placeholder="Enter instructor name"
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="schedule">Schedule</Label>
+                  <Input
+                    id="schedule"
+                    value={formData.schedule}
+                    onChange={(e) => setFormData(prev => ({ ...prev, schedule: e.target.value }))}
+                    placeholder="e.g., Mon-Wed-Fri 10:00-12:00"
+                  />
+                </div>
+
+                {/* Course Image File Upload */}
+                <div>
+                  <Label htmlFor="image">Course Image</Label>
+                  <div className="space-y-2">
+                    <input
+                      type="file"
+                      ref={imageFileInputRef}
+                      onChange={handleImageFileSelect}
+                      accept="image/*"
+                      className="hidden"
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => imageFileInputRef.current?.click()}
+                      className="w-full justify-start"
+                    >
+                      <Upload className="mr-2 h-4 w-4" />
+                      Choose Image File
+                    </Button>
+                    {selectedImageFile && (
+                      <div className="flex items-center justify-between bg-blue-50 px-3 py-2 rounded-md">
+                        <span className="text-sm text-blue-700 truncate">
+                          {selectedImageFile.name}
+                        </span>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => removeSelectedFile('image')}
+                          className="text-red-500 hover:text-red-700 h-6 w-6 p-0"
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    )}
+                    {editingCourse && formData.image_url && !selectedImageFile && (
+                      <div className="text-sm text-gray-500">
+                        Current: <a href={formData.image_url} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">View current image</a>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Syllabus File Upload */}
+                <div>
+                  <Label htmlFor="syllabus">Syllabus Document</Label>
+                  <div className="space-y-2">
+                    <input
+                      type="file"
+                      ref={syllabusFileInputRef}
+                      onChange={handleSyllabusFileSelect}
+                      accept=".pdf,.doc,.docx"
+                      className="hidden"
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => syllabusFileInputRef.current?.click()}
+                      className="w-full justify-start"
+                    >
+                      <Upload className="mr-2 h-4 w-4" />
+                      Choose Syllabus File
+                    </Button>
+                    {selectedSyllabusFile && (
+                      <div className="flex items-center justify-between bg-blue-50 px-3 py-2 rounded-md">
+                        <span className="text-sm text-blue-700 truncate">
+                          {selectedSyllabusFile.name}
+                        </span>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => removeSelectedFile('syllabus')}
+                          className="text-red-500 hover:text-red-700 h-6 w-6 p-0"
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    )}
+                    {editingCourse && formData.syllabus_url && !selectedSyllabusFile && (
+                      <div className="text-sm text-gray-500">
+                        Current: <a href={formData.syllabus_url} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">View current syllabus</a>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <Label htmlFor="description">Course Description *</Label>
+                <Textarea
+                  id="description"
+                  required
+                  rows={4}
+                  value={formData.description}
+                  onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+                  placeholder="Enter course description"
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="instructor_bio">Instructor Bio</Label>
+                <Textarea
+                  id="instructor_bio"
+                  rows={3}
+                  value={formData.instructor_bio}
+                  onChange={(e) => setFormData(prev => ({ ...prev, instructor_bio: e.target.value }))}
+                  placeholder="Enter instructor bio"
+                />
+              </div>
+
+              {/* Prerequisites */}
+              <div>
+                <Label>Prerequisites</Label>
+                {formData.prerequisites.map((prereq, index) => (
+                  <div key={index} className="flex gap-2 mb-2">
+                    <Input
+                      value={prereq}
+                      onChange={(e) => updateArrayField('prerequisites', index, e.target.value)}
+                      placeholder="Enter prerequisite"
+                    />
+                    {formData.prerequisites.length > 1 && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => removeArrayField('prerequisites', index)}
+                        className="text-red-500 hover:text-red-700 h-10 w-10 p-0"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    )}
+                  </div>
+                ))}
+                <Button
+                  type="button"
+                  variant="link"
+                  onClick={() => addArrayField('prerequisites')}
+                  className="text-blue-600 hover:text-blue-800 p-0 h-auto"
+                >
+                  + Add Prerequisite
+                </Button>
+              </div>
+
+              {/* Learning Outcomes */}
+              <div>
+                <Label>Learning Outcomes</Label>
+                {formData.learning_outcomes.map((outcome, index) => (
+                  <div key={index} className="flex gap-2 mb-2">
+                    <Input
+                      value={outcome}
+                      onChange={(e) => updateArrayField('learning_outcomes', index, e.target.value)}
+                      placeholder="Enter learning outcome"
+                    />
+                    {formData.learning_outcomes.length > 1 && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => removeArrayField('learning_outcomes', index)}
+                        className="text-red-500 hover:text-red-700 h-10 w-10 p-0"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    )}
+                  </div>
+                ))}
+                <Button
+                  type="button"
+                  variant="link"
+                  onClick={() => addArrayField('learning_outcomes')}
+                  className="text-blue-600 hover:text-blue-800 p-0 h-auto"
+                >
+                  + Add Learning Outcome
+                </Button>
+              </div>
+
+              {/* Course Materials */}
+              <div>
+                <Label>Course Materials</Label>
+                {formData.course_materials.map((material, index) => (
+                  <div key={index} className="flex gap-2 mb-2">
+                    <Input
+                      value={material}
+                      onChange={(e) => updateArrayField('course_materials', index, e.target.value)}
+                      placeholder="Enter course material"
+                    />
+                    {formData.course_materials.length > 1 && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => removeArrayField('course_materials', index)}
+                        className="text-red-500 hover:text-red-700 h-10 w-10 p-0"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    )}
+                  </div>
+                ))}
+                <Button
+                  type="button"
+                  variant="link"
+                  onClick={() => addArrayField('course_materials')}
+                  className="text-blue-600 hover:text-blue-800 p-0 h-auto"
+                >
+                  + Add Course Material
+                </Button>
+              </div>
+
+              <div className="flex items-center space-x-4">
+                <div className="flex items-center space-x-2">
+                  <input
+                    type="checkbox"
+                    id="is_active"
+                    checked={formData.is_active}
+                    onChange={(e) => setFormData(prev => ({ ...prev, is_active: e.target.checked }))}
+                    className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                  />
+                  <Label htmlFor="is_active">Active (visible to students)</Label>
+                </div>
+
+                <div className="flex items-center space-x-2">
+                  <input
+                    type="checkbox"
+                    id="is_featured"
+                    checked={formData.is_featured}
+                    onChange={(e) => setFormData(prev => ({ ...prev, is_featured: e.target.checked }))}
+                    className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                  />
+                  <Label htmlFor="is_featured">Featured Course</Label>
+                </div>
+              </div>
+
+              <div className="flex justify-end space-x-3 pt-4">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => {
+                    setShowModal(false);
+                    resetForm();
+                  }}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  disabled={loading || uploadingFiles}
+                >
+                  {loading || uploadingFiles ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      {uploadingFiles ? "Uploading..." : "Saving..."}
+                    </>
+                  ) : (
+                    editingCourse ? "Update Course" : "Add Course"
+                  )}
+                </Button>
+              </div>
+            </form>
+          </DialogContent>
+        </Dialog>
       )}
     </div>
   );

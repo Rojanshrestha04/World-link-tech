@@ -15,12 +15,23 @@ import {
   Mail,
   FolderOpen,
   Briefcase,
+  ChevronDown,
+  UserCircle,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import { useState } from "react"
 import { useAdminAuth } from "@/contexts/auth-context"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import AdminLogo from "@/components/admin/admin-logo"
 
 const sidebarItems = [
   {
@@ -88,7 +99,7 @@ const sidebarItems = [
 export default function AdminSidebar() {
   const pathname = usePathname()
   const [open, setOpen] = useState(false)
-  const { user, isAdmin, isLoading } = useAdminAuth()
+  const { user, isAdmin, isLoading, signOut } = useAdminAuth()
 
   // Don't render sidebar if user is not logged in or not an admin
   if (isLoading) {
@@ -117,7 +128,7 @@ export default function AdminSidebar() {
             <div className="flex h-full flex-col gap-2">
               <div className="flex h-[60px] items-center px-6">
                 <Link href="/admin" className="flex items-center gap-2 font-semibold">
-                  <span className="text-lg">Admin Panel</span>
+                  <AdminLogo />
                 </Link>
               </div>
               <div className="flex-1 overflow-auto">
@@ -137,6 +148,47 @@ export default function AdminSidebar() {
                   ))}
                 </div>
               </div>
+              <div className="mt-auto border-t p-4">
+                {user && (
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" className="flex w-full items-center justify-between">
+                        <UserCircle className="ml-2 h-4 w-4" />
+                        <span className="truncate">{user.email}</span>
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent className="w-56" align="end">
+                      <DropdownMenuLabel>My Account</DropdownMenuLabel>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem>
+                        <Link href="/admin/profile" className="flex items-center w-full">
+                          <UserCircle className="mr-2 h-4 w-4" />
+                          <span>Profile</span>
+                        </Link>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => signOut()}>
+                        <Link href="#" className="flex items-center w-full">
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            strokeWidth={1.5}
+                            stroke="currentColor"
+                            className="mr-2 h-4 w-4"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m3 0l3-3m0 0l-3-3m3 3H9"
+                            />
+                          </svg>
+                          <span>Logout</span>
+                        </Link>
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                )}
+              </div>
             </div>
           </SheetContent>
         </Sheet>
@@ -146,7 +198,7 @@ export default function AdminSidebar() {
       <div className="fixed inset-y-0 left-0 z-30 hidden w-64 flex-col border-r bg-white lg:flex">
         <div className="flex h-[60px] items-center border-b px-6">
           <Link href="/admin" className="flex items-center gap-2 font-semibold">
-            <span className="text-lg">Admin Panel</span>
+            <AdminLogo />
           </Link>
         </div>
         <div className="flex-1 overflow-auto">
@@ -165,6 +217,47 @@ export default function AdminSidebar() {
               </Link>
             ))}
           </div>
+        </div>
+        <div className="mt-auto border-t p-4">
+          {user && (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" className="flex w-full items-center justify-between">
+                  <span className="truncate">{user.email}</span>
+                  <UserCircle className="ml-2 h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent className="w-56" align="end">
+                <DropdownMenuLabel>My Account</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem>
+                  <Link href="/admin/profile" className="flex items-center w-full">
+                    <UserCircle className="mr-2 h-4 w-4" />
+                    <span>Profile</span>
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => signOut()}>
+                  <Link href="#" className="flex items-center w-full">
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      strokeWidth={1.5}
+                      stroke="currentColor"
+                      className="mr-2 h-4 w-4"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m3 0l3-3m0 0l-3-3m3 3H9"
+                      />
+                    </svg>
+                    <span>Logout</span>
+                  </Link>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
         </div>
       </div>
     </>
