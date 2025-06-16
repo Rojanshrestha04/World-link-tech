@@ -13,6 +13,7 @@ import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import PageHeader from "@/components/page-header"
+import { getSupabaseBrowserClient } from "@/lib/supabase"
 
 const formSchema = z.object({
   name: z.string().min(2, {
@@ -37,6 +38,8 @@ const formSchema = z.object({
 
 export default function ContactPageClient() {
   const [isSubmitted, setIsSubmitted] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [isLoading, setIsLoading] = useState(false)
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -50,10 +53,39 @@ export default function ContactPageClient() {
     },
   })
 
-  function onSubmit(values: z.infer<typeof formSchema>) {
-    console.log(values)
-    // In a real application, you would submit this data to your backend
-    setIsSubmitted(true)
+  async function onSubmit(values: z.infer<typeof formSchema>) {
+    setIsLoading(true)
+    setError(null)
+
+    try {
+      const supabase = getSupabaseBrowserClient()
+
+      // Insert the form data into the contact_submissions table
+      const { error: insertError } = await supabase
+        .from("contact_submissions")
+        .insert({
+          name: values.name,
+          email: values.email,
+          phone: values.phone,
+          subject: values.subject,
+          inquiry_type: values.inquiry,
+          message: values.message,
+          status: 'pending'
+        })
+
+      if (insertError) {
+        console.error("Supabase insert error:", insertError)
+        throw new Error(insertError.message || "Failed to submit form")
+      }
+
+      // Show success message
+      setIsSubmitted(true)
+    } catch (err: any) {
+      console.error("Form submission error:", err)
+      setError(err?.message || "An error occurred while submitting your message. Please try again.")
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   return (
@@ -176,6 +208,12 @@ export default function ContactPageClient() {
                     possible.
                   </p>
 
+                  {error && (
+                    <div className="bg-red-100 text-red-700 p-4 rounded-md mb-4">
+                      <p>{error}</p>
+                    </div>
+                  )}
+
                   <Form {...form}>
                     <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
                       <FormField
@@ -276,8 +314,8 @@ export default function ContactPageClient() {
                         )}
                       />
 
-                      <Button type="submit" size="lg" className="w-full">
-                        Send Message
+                      <Button type="submit" size="lg" className="w-full" disabled={isLoading}>
+                        {isLoading ? "Sending..." : "Send Message"}
                       </Button>
                     </form>
                   </Form>

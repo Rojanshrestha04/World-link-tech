@@ -19,9 +19,9 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning className="h-full">
       <body className={`${inter.className} flex flex-col h-full`}>
         <ThemeProvider attribute="class" defaultTheme="light" enableSystem>
-            <UserAuthProvider>
+          <UserAuthProvider>
             {children}
-            </UserAuthProvider>
+          </UserAuthProvider>
         </ThemeProvider>
       </body>
     </html>

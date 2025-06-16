@@ -167,7 +167,7 @@ export default function AdminSidebar() {
                         </Link>
                       </DropdownMenuItem>
                       <DropdownMenuItem onClick={() => signOut()}>
-                        <Link href="#" className="flex items-center w-full">
+                        <div className="flex items-center w-full">
                           <svg
                             xmlns="http://www.w3.org/2000/svg"
                             fill="none"
@@ -183,7 +183,7 @@ export default function AdminSidebar() {
                             />
                           </svg>
                           <span>Logout</span>
-                        </Link>
+                        </div>
                       </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
@@ -237,7 +237,7 @@ export default function AdminSidebar() {
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => signOut()}>
-                  <Link href="#" className="flex items-center w-full">
+                  <div className="flex items-center w-full">
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
                       fill="none"
@@ -253,7 +253,7 @@ export default function AdminSidebar() {
                       />
                     </svg>
                     <span>Logout</span>
-                  </Link>
+                  </div>
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>

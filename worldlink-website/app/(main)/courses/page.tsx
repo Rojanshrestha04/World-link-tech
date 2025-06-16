@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import React, { useEffect, useState } from "react"
 import Link from "next/link"
 import { Filter, PlusCircle } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -9,8 +9,8 @@ import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import PageHeader from "@/components/page-header"
 import CourseCard from "@/components/course-card"
-import { courses } from "@/lib/data"
 import { Course } from "@/lib/types"
+import { cn } from "@/lib/utils"
 
 // Map category names to their slugs for consistent linking
 const categoryToSlug: Record<string, string> = {
@@ -21,16 +21,47 @@ const categoryToSlug: Record<string, string> = {
 }
 
 export default function CoursesPage() {
+  const [courses, setCourses] = useState<Course[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const categories = [...new Set(courses.map((course) => course.category))]
   
   // State for filters
   const [searchQuery, setSearchQuery] = useState<string>("")
   const [selectedCategory, setSelectedCategory] = useState<string>("all")
   const [selectedDuration, setSelectedDuration] = useState<string>("all")
-  const [filteredCourses, setFilteredCourses] = useState<Course[]>(courses)
+  const [filteredCourses, setFilteredCourses] = useState<Course[]>([])
+  
+  // Fetch courses data
+  useEffect(() => {
+    const fetchCourses = async () => {
+      try {
+        setLoading(true)
+        setError(null)
+        // Use relative URL to avoid issues with environment variables
+        const res = await fetch('/api/courses')
+        if (!res.ok) {
+          const errorData = await res.json()
+          throw new Error(errorData.error || 'Failed to fetch courses')
+        }
+        const data = await res.json()
+        setCourses(data)
+        setFilteredCourses(data)
+      } catch (error) {
+        console.error('Error fetching courses:', error)
+        setError(error instanceof Error ? error.message : 'Failed to fetch courses')
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchCourses()
+  }, [])
   
   // Apply filters when any filter changes
   useEffect(() => {
+    if (!courses.length) return
+
     let result = [...courses]
     
     // Apply search filter
@@ -54,21 +85,21 @@ export default function CoursesPage() {
     // Apply duration filter
     if (selectedDuration !== "all") {
       result = result.filter(course => {
-        const durationMonths = parseInt(course.duration.split(" ")[0])
+        const durationWeeks = course.duration_weeks
         
         if (selectedDuration === "1-2") {
-          return durationMonths >= 1 && durationMonths <= 2
+          return durationWeeks >= 4 && durationWeeks <= 8
         } else if (selectedDuration === "3-4") {
-          return durationMonths >= 3 && durationMonths <= 4
+          return durationWeeks >= 12 && durationWeeks <= 16
         } else if (selectedDuration === "5+") {
-          return durationMonths >= 5
+          return durationWeeks >= 20
         }
         return true
       })
     }
     
     setFilteredCourses(result)
-  }, [searchQuery, selectedCategory, selectedDuration])
+  }, [searchQuery, selectedCategory, selectedDuration, courses])
   
   // Handle category badge click
   const handleCategoryBadgeClick = (category: string): void => {
@@ -80,33 +111,43 @@ export default function CoursesPage() {
     return categoryToSlug[category] || category.toLowerCase().replace(/\s+/g, '-')
   }
 
+  if (loading) {
+    return (
+      <div className="container mx-auto px-4 py-12">
+        <div className="text-center">
+          <h2 className="text-2xl font-bold text-slate-800 mb-4">Loading courses...</h2>
+          <p className="text-slate-600">Please wait while we fetch the latest course information.</p>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <>
-      <PageHeader title="Our Courses" description="Explore our CTEVT certified vocational training programs" />
+      <PageHeader
+        title="Our Courses"
+        description="Explore our comprehensive range of CTEVT certified courses designed to help you build a successful career."
+      />
 
       <section className="py-12">
         <div className="container mx-auto px-4">
-          {/* Filters */}
-          <div className="bg-white p-6 rounded-lg shadow-sm mb-8">
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
-              <h3 className="text-lg font-semibold flex items-center">
-                <Filter className="h-5 w-5 mr-2" /> Filter Courses
-              </h3>
-              <Link href="/courses/add-course">
-                <Button className="flex items-center gap-2">
-                  <PlusCircle className="h-4 w-4" /> Add New Course
-                </Button>
-              </Link>
+          {/* Filter Section */}
+          <div className="mb-8">
+            <div className="flex items-center mb-4">
+              <Filter className="mr-2" />
+              <h3 className="text-lg font-semibold">Filter</h3>
             </div>
+            
             <div className="flex flex-col sm:flex-row gap-4">
-              <Input 
-                placeholder="Search courses..." 
-                className="w-full sm:w-[250px]" 
+              <Input
+                type="search"
+                placeholder="Search courses..."
+                className="flex-1"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
               <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-                <SelectTrigger className="w-full sm:w-[180px]">
+                <SelectTrigger className="w-[180px]">
                   <SelectValue placeholder="Category" />
                 </SelectTrigger>
                 <SelectContent>
@@ -119,7 +160,7 @@ export default function CoursesPage() {
                 </SelectContent>
               </Select>
               <Select value={selectedDuration} onValueChange={setSelectedDuration}>
-                <SelectTrigger className="w-full sm:w-[180px]">
+                <SelectTrigger className="w-[180px]">
                   <SelectValue placeholder="Duration" />
                 </SelectTrigger>
                 <SelectContent>
@@ -130,25 +171,34 @@ export default function CoursesPage() {
                 </SelectContent>
               </Select>
             </div>
-            <div className="flex flex-wrap gap-2">
-              <Badge 
-                variant={selectedCategory === "all" ? "default" : "outline"} 
+
+            {/* Category Badges */}
+            <div className="flex flex-wrap gap-2 mt-4">
+              <Badge
+                variant={selectedCategory === "all" ? "default" : "outline"}
                 className="cursor-pointer hover:bg-slate-100"
-                onClick={() => handleCategoryBadgeClick("All Courses")}
+                onClick={() => setSelectedCategory("all")}
               >
                 All Courses
               </Badge>
               {categories.map((category) => (
-                <Badge 
-                  key={category} 
-                  variant={selectedCategory === category.toLowerCase() ? "default" : "outline"} 
+                <Badge
+                  key={category}
+                  variant={selectedCategory === category.toLowerCase() ? "default" : "outline"}
                   className="cursor-pointer hover:bg-slate-100"
-                  onClick={() => handleCategoryBadgeClick(category)}
+                  onClick={() => setSelectedCategory(category.toLowerCase())}
                 >
                   {category}
                 </Badge>
               ))}
             </div>
+          </div>
+          
+          {/* Results Count */}
+          <div className="mb-6">
+            <p className="text-slate-600">
+              Showing {filteredCourses.length} {filteredCourses.length === 1 ? 'result' : 'results'}
+            </p>
           </div>
 
           {/* Course Categories */}

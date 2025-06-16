@@ -1,150 +1,98 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import React, { useEffect, useState } from "react"
 import Link from "next/link"
 import { BookOpen, Download, Calendar, Briefcase, Tag, Users, Filter } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import PageHeader from "@/components/page-header"
+import { Curriculum } from "@/lib/types"
 import { cn } from "@/lib/utils"
-
-// Extended curriculum type with additional fields
-interface ExtendedCurriculum {
-  id: string
-  title: string
-  description: string
-  file: string
-  category: string
-  date: string
-  occupation: string
-  type: string
-  developedBy: string
-  curriculumType: "Curriculum" | "OP" | "OSS/NOSS"
-}
-
-// Sample extended curriculum data
-const extendedCurriculums: ExtendedCurriculum[] = [
-  // Curriculum type
-  {
-    id: "1",
-    title: "Computer Hardware & Networking Curriculum",
-    description: "Detailed curriculum for the Computer Hardware & Networking course including modules, topics, and assessment criteria.",
-    file: "/resources/computer-hardware-networking-curriculum.pdf",
-    category: "IT",
-    date: "January 25, 2025",
-    occupation: "Computer Hardware Technician",
-    type: "Level 2",
-    developedBy: "CTEVT",
-    curriculumType: "Curriculum"
-  },
-  {
-    id: "2",
-    title: "Electrical House Wiring Curriculum",
-    description: "Detailed curriculum for the Electrical House Wiring course including modules, topics, and assessment criteria.",
-    file: "/resources/electrical-house-wiring-curriculum.pdf",
-    category: "Electrical",
-    date: "January 25, 2025",
-    occupation: "Electrical Technician",
-    type: "Level 1",
-    developedBy: "CTEVT",
-    curriculumType: "Curriculum"
-  },
-  {
-    id: "3",
-    title: "Mobile Phone Repair Curriculum",
-    description: "Comprehensive curriculum for mobile phone repair training program.",
-    file: "/resources/mobile-repair-curriculum.pdf",
-    category: "IT",
-    date: "February 10, 2025",
-    occupation: "Mobile Repair Technician",
-    type: "Level 1",
-    developedBy: "CTEVT",
-    curriculumType: "Curriculum"
-  },
-  
-  // OP type
-  {
-    id: "4",
-    title: "Web Development Occupational Profile",
-    description: "Occupational profile for web development training program.",
-    file: "/resources/web-development-op.pdf",
-    category: "IT",
-    date: "March 5, 2025",
-    occupation: "Web Developer",
-    type: "Level 3",
-    developedBy: "Industry Experts",
-    curriculumType: "OP"
-  },
-  {
-    id: "5",
-    title: "Professional Cooking Occupational Profile",
-    description: "Detailed occupational profile for professional cooking course.",
-    file: "/resources/cooking-op.pdf",
-    category: "Hospitality",
-    date: "February 15, 2025",
-    occupation: "Professional Cook",
-    type: "Level 2",
-    developedBy: "Hospitality Industry Association",
-    curriculumType: "OP"
-  },
-  
-  // OSS/NOSS type
-  {
-    id: "6",
-    title: "Plumbing NOSS Standard",
-    description: "National Occupational Skill Standard for plumbing and pipe fitting.",
-    file: "/resources/plumbing-noss.pdf",
-    category: "Mechanical",
-    date: "January 30, 2025",
-    occupation: "Plumber",
-    type: "Level 1",
-    developedBy: "National Skill Testing Board",
-    curriculumType: "OSS/NOSS"
-  },
-  {
-    id: "7",
-    title: "Welding OSS Standard",
-    description: "Occupational Skill Standard for welding techniques and safety.",
-    file: "/resources/welding-oss.pdf",
-    category: "Mechanical",
-    date: "March 10, 2025",
-    occupation: "Welder",
-    type: "Level 2",
-    developedBy: "CTEVT",
-    curriculumType: "OSS/NOSS"
-  }
-];
 
 // Curriculum type filter options
 const typeFilterOptions = ["All Types", "Curriculum", "OP", "OSS/NOSS"];
 
 export default function CurriculumPage() {
-  const [searchQuery, setSearchQuery] = useState("");
-  const [selectedTypeFilter, setSelectedTypeFilter] = useState("All Types");
-  const [filteredResults, setFilteredResults] = useState<ExtendedCurriculum[]>(extendedCurriculums);
-  
+  const [curriculums, setCurriculums] = useState<Curriculum[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [searchQuery, setSearchQuery] = useState("")
+  const [selectedTypeFilter, setSelectedTypeFilter] = useState("All Types")
+  const [filteredResults, setFilteredResults] = useState<Curriculum[]>([])
+
+  useEffect(() => {
+    const fetchCurriculums = async () => {
+      try {
+        setLoading(true)
+        setError(null)
+        const res = await fetch('/api/curriculum')
+        if (!res.ok) {
+          const errorData = await res.json()
+          throw new Error(errorData.error || 'Failed to fetch curriculums')
+        }
+        const data = await res.json()
+        setCurriculums(data)
+        setFilteredResults(data)
+      } catch (error) {
+        console.error('Error fetching curriculums:', error)
+        setError(error instanceof Error ? error.message : 'Failed to fetch curriculums')
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchCurriculums()
+  }, [])
+
   // Update filtered results whenever filters change
   useEffect(() => {
-    let results = extendedCurriculums;
+    let results = curriculums
     
     // Filter by selected type if not "All Types"
     if (selectedTypeFilter !== "All Types") {
-      results = results.filter(item => item.curriculumType === selectedTypeFilter);
+      results = results.filter(item => item.curriculum_type === selectedTypeFilter)
     }
     
     // Filter by search query
     if (searchQuery) {
-      const query = searchQuery.toLowerCase();
+      const query = searchQuery.toLowerCase()
       results = results.filter(item => 
         item.title.toLowerCase().includes(query) ||
         item.description.toLowerCase().includes(query) ||
         item.occupation.toLowerCase().includes(query)
-      );
+      )
     }
     
-    setFilteredResults(results);
-  }, [selectedTypeFilter, searchQuery]);
-  
+    setFilteredResults(results)
+  }, [selectedTypeFilter, searchQuery, curriculums])
+
+  if (loading) {
+    return (
+      <div className="container mx-auto px-4 py-12">
+        <div className="text-center">
+          <p className="text-lg">Loading curriculums...</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="container mx-auto px-4 py-12">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold text-red-600 mb-4">Error Loading Curriculums</h1>
+          <p className="text-lg mb-6">{error}</p>
+          <button 
+            onClick={() => window.location.reload()} 
+            className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+          >
+            Try Again
+          </button>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <>
       <PageHeader
@@ -154,60 +102,59 @@ export default function CurriculumPage() {
 
       <section className="py-12">
         <div className="container mx-auto px-4">
+          {/* Filter Section */}
+          <div className="mb-8">
+            <div className="flex items-center mb-4">
+              <Filter className="mr-2" />
+              <h3 className="text-lg font-semibold">Filter</h3>
+            </div>
             
-            {/* Filter Section */}
-            <div className="mb-8">
-              <div className="flex items-center mb-4">
-                <Filter className="mr-2" />
-                <h3 className="text-lg font-semibold">Filter</h3>
-              </div>
-              
-              {/* Curriculum Type Filter */}
-              <div className="mb-4">
-                <h4 className="text-sm font-medium mb-2 text-slate-700">Curriculum Type</h4>
-                <div className="flex flex-wrap gap-3 mb-4">
-                  {typeFilterOptions.map((option) => (
-                    <button
-                      key={option}
-                      onClick={() => setSelectedTypeFilter(option)}
-                      className={cn(
-                        "px-4 py-2 rounded-full text-sm font-medium transition-colors",
-                        selectedTypeFilter === option
-                          ? "bg-blue-600 text-white"
-                          : "bg-slate-100 text-slate-800 hover:bg-slate-200"
-                      )}
-                    >
-                      {option}
-                    </button>
-                  ))}
-                </div>
-              </div>
-              
-              {/* Search */}
-              <div className="flex flex-col sm:flex-row gap-4">
-                <Input
-                  type="search"
-                  placeholder="Search courses..."
-                  className="flex-1"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                />
+            {/* Curriculum Type Filter */}
+            <div className="mb-4">
+              <h4 className="text-sm font-medium mb-2 text-slate-700">Curriculum Type</h4>
+              <div className="flex flex-wrap gap-3 mb-4">
+                {typeFilterOptions.map((option) => (
+                  <button
+                    key={option}
+                    onClick={() => setSelectedTypeFilter(option)}
+                    className={cn(
+                      "px-4 py-2 rounded-full text-sm font-medium transition-colors",
+                      selectedTypeFilter === option
+                        ? "bg-blue-600 text-white"
+                        : "bg-slate-100 text-slate-800 hover:bg-slate-200"
+                    )}
+                  >
+                    {option}
+                  </button>
+                ))}
               </div>
             </div>
             
-            {/* Results Count */}
-            <div className="mb-6">
-              <p className="text-slate-600">
-                Showing {filteredResults.length} {filteredResults.length === 1 ? 'result' : 'results'}
-              </p>
+            {/* Search */}
+            <div className="flex flex-col sm:flex-row gap-4">
+              <Input
+                type="search"
+                placeholder="Search courses..."
+                className="flex-1"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
             </div>
-            
-            {/* Results */}
-            <div className="grid gap-6">
-              {filteredResults.map((curriculum) => (
-                <CurriculumCard key={curriculum.id} curriculum={curriculum} />
-              ))}
-            </div>
+          </div>
+          
+          {/* Results Count */}
+          <div className="mb-6">
+            <p className="text-slate-600">
+              Showing {filteredResults.length} {filteredResults.length === 1 ? 'result' : 'results'}
+            </p>
+          </div>
+          
+          {/* Results */}
+          <div className="grid gap-6">
+            {filteredResults.map((curriculum) => (
+              <CurriculumCard key={curriculum.id} curriculum={curriculum} />
+            ))}
+          </div>
         </div>
       </section>
     </>
@@ -245,9 +192,9 @@ function getTypeColor(type: string) {
 }
 
 // Curriculum Card Component
-function CurriculumCard({ curriculum }: { curriculum: ExtendedCurriculum }) {
+function CurriculumCard({ curriculum }: { curriculum: Curriculum }) {
   const categoryColorClass = getCategoryColor(curriculum.category);
-  const typeColorClass = getTypeColor(curriculum.curriculumType);
+  const typeColorClass = getTypeColor(curriculum.curriculum_type);
   
   return (
     <div className="bg-white p-6 rounded-lg shadow-sm border border-slate-100 hover:shadow-md transition-shadow">
@@ -264,7 +211,7 @@ function CurriculumCard({ curriculum }: { curriculum: ExtendedCurriculum }) {
                   {curriculum.category}
                 </span>
                 <span className={`text-xs font-medium px-2.5 py-0.5 rounded ${typeColorClass}`}>
-                  {curriculum.curriculumType}
+                  {curriculum.curriculum_type}
                 </span>
               </div>
             </div>
@@ -291,7 +238,7 @@ function CurriculumCard({ curriculum }: { curriculum: ExtendedCurriculum }) {
                 <Users className="h-4 w-4 mr-2 text-blue-600" />
                 <div>
                   <span className="text-xs text-slate-500 block">Developed By</span>
-                  <span className="font-medium">{curriculum.developedBy}</span>
+                  <span className="font-medium">{curriculum.developed_by}</span>
                 </div>
               </div>
             </div>
@@ -299,15 +246,17 @@ function CurriculumCard({ curriculum }: { curriculum: ExtendedCurriculum }) {
             <div className="flex items-center justify-between mt-2">
               <div className="flex items-center text-slate-500 text-sm">
                 <Calendar className="h-4 w-4 mr-1" />
-                <span>{curriculum.date}</span>
+                <span>{new Date(curriculum.created_at).toLocaleDateString()}</span>
               </div>
               
-              <Link href={curriculum.file} target="_blank">
-                <Button className="flex items-center gap-2">
-                  <Download className="h-4 w-4" />
-                  Download PDF
-                </Button>
-              </Link>
+              <div className="flex-shrink-0">
+                <Link href={curriculum.file_url || "#"} target="_blank">
+                  <Button className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700">
+                    <Download className="h-4 w-4" />
+                    Download PDF
+                  </Button>
+                </Link>
+              </div>
             </div>
           </div>
         </div>

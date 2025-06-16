@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import PageHeader from "@/components/page-header"
 import { galleryImages } from "@/lib/data"
+import { cn } from "@/lib/utils"
 
 export default function GalleryClientPage() {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null)
@@ -24,42 +25,51 @@ export default function GalleryClientPage() {
 
       <section className="py-12">
         <div className="container mx-auto px-4">
-          {/* Filters */}
-          <div className="bg-white p-6 rounded-lg shadow-sm mb-8">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
-              <h3 className="text-lg font-semibold flex items-center">
-                <Filter className="h-5 w-5 mr-2" /> Filter Gallery
-              </h3>
-              {selectedCategory && (
-                <Button
-                  variant="outline"
-                  size="sm"
+          {/* Filter Section */}
+          <div className="mb-8">
+            <div className="flex items-center mb-4">
+              <Filter className="mr-2" />
+              <h3 className="text-lg font-semibold">Filter</h3>
+            </div>
+            
+            {/* Category Filter */}
+            <div className="mb-4">
+              <h4 className="text-sm font-medium mb-2 text-slate-700">Category</h4>
+              <div className="flex flex-wrap gap-3 mb-4">
+                <button
                   onClick={() => setSelectedCategory(null)}
-                  className="flex items-center"
+                  className={cn(
+                    "px-4 py-2 rounded-full text-sm font-medium transition-colors",
+                    selectedCategory === null
+                      ? "bg-blue-600 text-white"
+                      : "bg-slate-100 text-slate-800 hover:bg-slate-200"
+                  )}
                 >
-                  Clear Filter <X className="ml-2 h-4 w-4" />
-                </Button>
-              )}
+                  All
+                </button>
+                {categories.map((category) => (
+                  <button
+                    key={category}
+                    onClick={() => setSelectedCategory(category)}
+                    className={cn(
+                      "px-4 py-2 rounded-full text-sm font-medium transition-colors",
+                      selectedCategory === category
+                        ? "bg-blue-600 text-white"
+                        : "bg-slate-100 text-slate-800 hover:bg-slate-200"
+                    )}
+                  >
+                    {category}
+                  </button>
+                ))}
+              </div>
             </div>
-            <div className="flex flex-wrap gap-2">
-              <Badge
-                variant={selectedCategory === null ? "default" : "outline"}
-                className="cursor-pointer"
-                onClick={() => setSelectedCategory(null)}
-              >
-                All
-              </Badge>
-              {categories.map((category) => (
-                <Badge
-                  key={category}
-                  variant={selectedCategory === category ? "default" : "outline"}
-                  className="cursor-pointer"
-                  onClick={() => setSelectedCategory(category)}
-                >
-                  {category}
-                </Badge>
-              ))}
-            </div>
+          </div>
+          
+          {/* Results Count */}
+          <div className="mb-6">
+            <p className="text-slate-600">
+              Showing {filteredImages.length} {filteredImages.length === 1 ? 'result' : 'results'}
+            </p>
           </div>
 
           {/* Gallery Grid */}

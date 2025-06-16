@@ -1,12 +1,63 @@
-import React from 'react'
+"use client"
+
+import React, { useEffect, useState } from "react"
 import Image from "next/image"
 import Link from "next/link"
 import { GraduationCap, BookOpen, Users, Award, FileText, ArrowRight } from "lucide-react"
+import { Course } from "@/lib/types"
 import CourseCard from "@/components/course-card"
 import TestimonialCard from "@/components/testimonial-card"
-import { featuredCourses, testimonials } from "@/lib/data"
 
-export default function Home() {
+export default function HomePage() {
+  const [featuredCourses, setFeaturedCourses] = useState<Course[]>([])
+  const [popularCourses, setPopularCourses] = useState<Course[]>([])
+  const [testimonials, setTestimonials] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true)
+        setError(null)
+        
+        // Fetch featured courses
+        const featuredRes = await fetch('/api/courses/featured')
+        if (!featuredRes.ok) {
+          const errorData = await featuredRes.json()
+          throw new Error(errorData.error || 'Failed to fetch featured courses')
+        }
+        const featuredData = await featuredRes.json()
+        setFeaturedCourses(featuredData)
+
+        // Fetch popular courses
+        const popularRes = await fetch('/api/courses/popular')
+        if (!popularRes.ok) {
+          const errorData = await popularRes.json()
+          throw new Error(errorData.error || 'Failed to fetch popular courses')
+        }
+        const popularData = await popularRes.json()
+        setPopularCourses(popularData)
+
+        // Fetch testimonials
+        const testimonialsRes = await fetch('/api/testimonials')
+        if (!testimonialsRes.ok) {
+          const errorData = await testimonialsRes.json()
+          throw new Error(errorData.error || 'Failed to fetch testimonials')
+        }
+        const testimonialsData = await testimonialsRes.json()
+        setTestimonials(testimonialsData)
+      } catch (error) {
+        console.error('Error fetching data:', error)
+        setError(error instanceof Error ? error.message : 'Failed to fetch data')
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchData()
+  }, [])
+
   return (
     <>
       {/* Hero Section */}
@@ -45,7 +96,6 @@ export default function Home() {
         </div>
       </section>
 
-
       {/* Featured Programs */}
       <section className="py-16 bg-slate-50">
         <div className="container mx-auto px-4">
@@ -56,82 +106,49 @@ export default function Home() {
             </p>
           </div>
 
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
-            <div className="bg-white p-6 rounded-lg shadow-sm hover:shadow-md transition-shadow">
-              <div className="bg-blue-100 w-16 h-16 rounded-full flex items-center justify-center mb-4 mx-auto">
-                <GraduationCap className="h-8 w-8 text-blue-700" />
-              </div>
-              <h3 className="text-xl font-semibold text-center mb-2">Computer Hardware & Networking</h3>
-              <p className="text-slate-600 text-center">
-                Learn to assemble, maintain, and troubleshoot computer systems and networks.
-              </p>
-              <div className="mt-4 text-center">
-                <Link
-                  href="/courses/hardware-networking"
-                  className="text-blue-700 font-medium hover:text-blue-600 transition-colors"
-                >
-                  Learn More →
-                </Link>
-              </div>
+          {loading ? (
+            <div className="text-center py-12">
+              <p className="text-lg">Loading featured courses...</p>
             </div>
-
-            <div className="bg-white p-6 rounded-lg shadow-sm hover:shadow-md transition-shadow">
-              <div className="bg-blue-100 w-16 h-16 rounded-full flex items-center justify-center mb-4 mx-auto">
-                <BookOpen className="h-8 w-8 text-blue-700" />
-              </div>
-              <h3 className="text-xl font-semibold text-center mb-2">Electrical Wiring & Installation</h3>
-              <p className="text-slate-600 text-center">
-                Master residential and commercial electrical wiring, installation, and maintenance.
-              </p>
-              <div className="mt-4 text-center">
-                <Link
-                  href="/courses/house-wiring"
-                  className="text-blue-700 font-medium hover:text-blue-600 transition-colors"
-                >
-                  Learn More →
-                </Link>
-              </div>
+          ) : error ? (
+            <div className="text-center py-12">
+              <p className="text-lg text-red-600">{error}</p>
+              <button 
+                onClick={() => window.location.reload()} 
+                className="mt-4 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+              >
+                Try Again
+              </button>
             </div>
-
-            <div className="bg-white p-6 rounded-lg shadow-sm hover:shadow-md transition-shadow">
-              <div className="bg-blue-100 w-16 h-16 rounded-full flex items-center justify-center mb-4 mx-auto">
-                <Users className="h-8 w-8 text-blue-700" />
-              </div>
-              <h3 className="text-xl font-semibold text-center mb-2">Hospitality & Culinary Arts</h3>
-              <p className="text-slate-600 text-center">
-                Develop skills in food preparation, service, and hospitality management.
-              </p>
-              <div className="mt-4 text-center">
-                <Link
-                  href="/courses/professional-cooking"
-                  className="text-blue-700 font-medium hover:text-blue-600 transition-colors"
-                >
-                  Learn More →
-                </Link>
-              </div>
+          ) : featuredCourses.length === 0 ? (
+            <div className="text-center py-12">
+              <p className="text-lg">No featured courses available at the moment.</p>
             </div>
-
-            <div className="bg-white p-6 rounded-lg shadow-sm hover:shadow-md transition-shadow">
-              <div className="bg-blue-100 w-16 h-16 rounded-full flex items-center justify-center mb-4 mx-auto">
-                <Award className="h-8 w-8 text-blue-700" />
-              </div>
-              <h3 className="text-xl font-semibold text-center mb-2">Mobile Phone Repair</h3>
-              <p className="text-slate-600 text-center">
-                Learn to diagnose and repair smartphones and mobile devices with hands-on training.
-              </p>
-              <div className="mt-4 text-center">
-                <Link
-                  href="/courses/mobile-repair"
-                  className="text-blue-700 font-medium hover:text-blue-600 transition-colors"
-                >
-                  Learn More →
-                </Link>
-              </div>
+          ) : (
+            <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
+              {featuredCourses.map((course) => (
+                <div key={course.id} className="bg-white p-6 rounded-lg shadow-sm hover:shadow-md transition-shadow">
+                  <div className="bg-blue-100 w-16 h-16 rounded-full flex items-center justify-center mb-4 mx-auto">
+                    <GraduationCap className="h-8 w-8 text-blue-700" />
+                  </div>
+                  <h3 className="text-xl font-semibold text-center mb-2">{course.title}</h3>
+                  <p className="text-slate-600 text-center">
+                    {course.description.substring(0, 100)}...
+                  </p>
+                  <div className="mt-4 text-center">
+                    <Link
+                      href={`/courses/${course.slug}`}
+                      className="text-blue-700 font-medium hover:text-blue-600 transition-colors"
+                    >
+                      Learn More →
+                    </Link>
+                  </div>
+                </div>
+              ))}
             </div>
-          </div>
+          )}
         </div>
       </section>
-
 
       {/* Why Choose Us */}
       <section className="py-16">
@@ -211,7 +228,7 @@ export default function Home() {
           </div>
 
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {featuredCourses.map((course) => (
+            {popularCourses.map((course) => (
               <CourseCard key={course.id} course={course} />
             ))}
           </div>
@@ -239,64 +256,24 @@ export default function Home() {
       {/* Call to Action */}
       <section className="py-16 bg-blue-700 text-white">
         <div className="container mx-auto px-4 text-center">
-          <h2 className="text-3xl font-bold mb-4">Ready to Start Your Career Journey?</h2>
-          <p className="text-xl mb-8 max-w-2xl mx-auto">
-            Enroll in our CTEVT certified vocational training programs and gain the skills employers are looking for.
+          <h2 className="text-3xl font-bold mb-4">Ready to Transform Your Career?</h2>
+          <p className="text-lg mb-8 max-w-3xl mx-auto">
+            Join World Link Technical Training Institute and gain the skills needed to succeed in today's competitive
+            job market. Enroll in our CTEVT affiliated programs today.
           </p>
-          <div className="flex flex-wrap gap-4 justify-center">
-            <Link
-              href="/courses"
-              className="bg-white hover:bg-slate-100 text-blue-700 px-6 py-3 rounded-md font-medium transition-colors inline-block"
-            >
-              Browse Courses
-            </Link>
+          <div className="flex flex-wrap justify-center gap-4">
             <Link
               href="/admission/apply"
-              className="bg-blue-600 hover:bg-blue-500 text-white border border-white px-6 py-3 rounded-md font-medium transition-colors inline-block"
+              className="bg-white hover:bg-slate-100 text-blue-700 px-6 py-3 rounded-md font-medium transition-colors"
             >
               Apply Now
             </Link>
-          </div>
-        </div>
-      </section>
-
-      {/* CTEVT Affiliation */}
-      <section className="py-16">
-        <div className="container mx-auto px-4">
-          <div className="grid md:grid-cols-2 gap-12 items-center">
-            <div>
-              <h2 className="text-3xl font-bold text-slate-800 mb-6">CTEVT Affiliated Institution</h2>
-              <p className="text-slate-600 mb-4">
-                World Link Technical Training Institute is proud to be affiliated with the Council for Technical
-                Education and Vocational Training (CTEVT), the apex body for technical and vocational education in
-                Nepal.
-              </p>
-              <p className="text-slate-600 mb-6">
-                This affiliation ensures that all our training programs meet national quality standards and that our
-                certificates are recognized throughout Nepal and by many international organizations.
-              </p>
-              <div className="flex items-center gap-6 mb-6">
-                <div className="flex items-center gap-2">
-                  <FileText className="h-5 w-5 text-blue-700" />
-                  <span className="font-medium">CTEVT Registration No: 123-456-789</span>
-                </div>
-              </div>
-              <Link
-                href="/about"
-                className="bg-blue-700 hover:bg-blue-600 text-white px-6 py-3 rounded-md font-medium transition-colors inline-block"
-              >
-                Learn More About Our Affiliation
-              </Link>
-            </div>
-            <div className="relative h-[400px]">
-              <Image
-                src="/ctevt-affiliation.png"
-                alt="CTEVT Affiliation"
-                width={600}
-                height={400}
-                className="object-cover w-full h-full rounded-lg"
-              />
-            </div>
+            <Link
+              href="/contact"
+              className="border border-white hover:bg-white hover:text-blue-700 px-6 py-3 rounded-md font-medium transition-colors"
+            >
+              Contact Us
+            </Link>
           </div>
         </div>
       </section>
