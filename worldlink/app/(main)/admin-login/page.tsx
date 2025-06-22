@@ -1,5 +1,6 @@
 'use client'
 
+import { Suspense } from "react"
 import AdminLoginForm from "@/components/admin/admin-login-form"
 
 export default function AdminLoginPage() {
@@ -10,7 +11,9 @@ export default function AdminLoginPage() {
           <h1 className="text-2xl font-bold text-slate-900">Admin Login</h1>
           <p className="text-slate-600 mt-2">Enter your credentials to access the admin panel</p>
         </div>
-        <AdminLoginForm />
+        <Suspense fallback={<div className="bg-white p-8 rounded-lg shadow-sm">Loading...</div>}>
+          <AdminLoginForm />
+        </Suspense>
       </div>
     </div>
   )
