@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { LogOut, Settings, User as LucideUserIcon } from "lucide-react"
 import { User as SupabaseUser } from "@supabase/supabase-js"
+import { useAdminAuth } from "@/contexts/auth-context"
 
 interface UserProfileDropdownProps {
   user: SupabaseUser | null;
@@ -22,22 +23,19 @@ interface UserProfileDropdownProps {
 
 export default function UserProfileDropdown({ user, isLoading }: UserProfileDropdownProps) {
   const router = useRouter()
+  const { signOut } = useAdminAuth()
 
   const handleLogout = async () => {
     try {
-      const response = await fetch("/api/auth/logout", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-      })
-
-      if (response.ok) {
-        router.push("/admin-login")
-        router.refresh()
-      }
+      // Use the proper signOut function from auth context
+      await signOut()
+      // The signOut function already handles the redirect to home page
+      // But we can also redirect to admin-login if needed
+      router.push("/admin-login")
     } catch (error) {
       console.error("Logout error:", error)
+      // Fallback redirect in case of error
+      router.push("/admin-login")
     }
   }
 
@@ -90,7 +88,7 @@ export default function UserProfileDropdown({ user, isLoading }: UserProfileDrop
         </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={handleLogout}>
-          <LucideUserIcon className="mr-2 h-4 w-4" />
+          <LogOut className="mr-2 h-4 w-4" />
           <span>Log out</span>
         </DropdownMenuItem>
       </DropdownMenuContent>

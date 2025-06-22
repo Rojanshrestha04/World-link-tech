@@ -1,4 +1,3 @@
-
 import { NextRequest, NextResponse } from 'next/server'
 import { writeFile, mkdir } from 'fs/promises'
 import { join } from 'path'
@@ -44,11 +43,12 @@ export async function POST(request: NextRequest) {
       url: publicUrl,
       filename: filename,
       size: file.size,
-      type: file.type
+      type: file.type,
+      success: true
     })
 
   } catch (error) {
     console.error('Upload error:', error)
-    return NextResponse.json({ error: 'Upload failed' }, { status: 500 })
+    return NextResponse.json({ error: error instanceof Error ? error.message : 'Upload failed' }, { status: 500 })
   }
 }

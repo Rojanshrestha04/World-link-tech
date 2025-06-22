@@ -1,4 +1,5 @@
-import CoursesClientPage from "./courses-client"
+import AdminHeader from "@/components/admin/admin-header"
+import CourseManagementTable from "@/components/admin/course-management-table"
 
 export const metadata = {
   title: "Course Management | Admin Dashboard",
@@ -6,5 +7,14 @@ export const metadata = {
 }
 
 export default function CoursesManagementPage() {
-  return <CoursesClientPage />
+  return (
+    <>
+      <AdminHeader
+        title="Course Management"
+        description="Create and manage courses"
+      />
+
+      <CourseManagementTable />
+    </>
+  )
 }

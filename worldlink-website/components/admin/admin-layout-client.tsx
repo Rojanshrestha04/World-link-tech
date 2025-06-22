@@ -1,16 +1,31 @@
+
 'use client'
 
-import { AdminAuthProvider } from "@/contexts/auth-context"
 import AdminSidebar from "@/components/admin/admin-sidebar"
 import { usePathname, useRouter } from "next/navigation"
 import { useAdminAuth } from "@/contexts/auth-context"
+import { useEffect } from "react"
 
-function AdminLayoutContent({ children }: { children: React.ReactNode }) {
+export default function AdminLayoutClient({
+  children,
+}: {
+  children: React.ReactNode
+}) {
   const pathname = usePathname()
   const router = useRouter()
   const { user, isAdmin, isLoading } = useAdminAuth()
 
-  // Show loading state
+  useEffect(() => {
+    // Only redirect if we're done loading and user is not admin
+    if (!isLoading && (!user || !isAdmin)) {
+      console.log('[AdminLayoutClient] Redirecting non-admin user')
+      // Show error and redirect
+      alert("You are not authorized to access the admin dashboard. Please log in as an admin.");
+      router.push('/admin-login');
+    }
+  }, [user, isAdmin, isLoading, router])
+
+  // Show loading state while checking authentication
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -22,10 +37,15 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
     )
   }
 
-  // Show login prompt if not authenticated
+  // Show error if not authenticated or not admin
   if (!user || !isAdmin) {
-    router.push('/admin-login')
-    return null
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-red-600 font-semibold">You are not authorized to access the admin dashboard. Please log in as an admin.</p>
+        </div>
+      </div>
+    )
   }
 
   // Regular admin pages with sidebar
@@ -39,17 +59,5 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
         </div>
       </main>
     </div>
-  )
-}
-
-export default function AdminLayoutClient({
-  children,
-}: {
-  children: React.ReactNode
-}) {
-  return (
-    <AdminAuthProvider>
-      <AdminLayoutContent>{children}</AdminLayoutContent>
-    </AdminAuthProvider>
   )
 }

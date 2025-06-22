@@ -1,3 +1,99 @@
+-- Cleanup and consolidate RLS Policies
+
+-- Drop all existing policies for relevant tables to ensure a clean slate
+DROP POLICY IF EXISTS "Enable read access for all authenticated users on courses" ON public.courses;
+DROP POLICY IF EXISTS "Enable insert for all authenticated users on courses" ON public.courses;
+DROP POLICY IF EXISTS "Enable update for all authenticated users on courses" ON public.courses;
+DROP POLICY IF EXISTS "Enable delete for all authenticated users on courses" ON public.courses;
+
+DROP POLICY IF EXISTS "Enable read access for all authenticated users on news_articles" ON public.news_articles;
+DROP POLICY IF EXISTS "Enable insert for all authenticated users on news_articles" ON public.news_articles;
+DROP POLICY IF EXISTS "Enable update for all authenticated users on news_articles" ON public.news_articles;
+DROP POLICY IF EXISTS "Enable delete for all authenticated users on news_articles" ON public.news_articles;
+
+DROP POLICY IF EXISTS "Enable read access for all authenticated users on careers" ON public.careers;
+DROP POLICY IF EXISTS "Enable insert for all authenticated users on careers" ON public.careers;
+DROP POLICY IF EXISTS "Enable update for all authenticated users on careers" ON public.careers;
+DROP POLICY IF EXISTS "Enable delete for all authenticated users on careers" ON public.careers;
+
+DROP POLICY IF EXISTS "Enable read access for all authenticated users on gallery_images" ON public.gallery_images;
+DROP POLICY IF EXISTS "Enable insert for all authenticated users on gallery_images" ON public.gallery_images;
+DROP POLICY IF EXISTS "Enable update for all authenticated users on gallery_images" ON public.gallery_images;
+DROP POLICY IF EXISTS "Enable delete for all authenticated users on gallery_images" ON public.gallery_images;
+
+DROP POLICY IF EXISTS "Enable read access for all authenticated users on testimonials" ON public.testimonials;
+DROP POLICY IF EXISTS "Enable insert for all authenticated users on testimonials" ON public.testimonials;
+DROP POLICY IF EXISTS "Enable update for all authenticated users on testimonials" ON public.testimonials;
+DROP POLICY IF EXISTS "Enable delete for all authenticated users on testimonials" ON public.testimonials;
+DROP POLICY IF EXISTS "Enable read access for all users" ON public.testimonials;
+
+DROP POLICY IF EXISTS "Enable read access for all authenticated users on resources" ON public.resources;
+DROP POLICY IF EXISTS "Enable insert for all authenticated users on resources" ON public.resources;
+DROP POLICY IF EXISTS "Enable update for all authenticated users on resources" ON public.resources;
+DROP POLICY IF EXISTS "Enable delete for all authenticated users on resources" ON public.resources;
+
+DROP POLICY IF EXISTS "Enable read access for all authenticated users on publications" ON public.publications;
+DROP POLICY IF EXISTS "Enable insert for all authenticated users on publications" ON public.publications;
+DROP POLICY IF EXISTS "Enable update for all authenticated users on publications" ON public.publications;
+DROP POLICY IF EXISTS "Enable delete for all authenticated users on publications" ON public.publications;
+
+DROP POLICY IF EXISTS "Enable read access for all authenticated users on policies" ON public.policies;
+DROP POLICY IF EXISTS "Enable insert for all authenticated users on policies" ON public.policies;
+DROP POLICY IF EXISTS "Enable update for all authenticated users on policies" ON public.policies;
+DROP POLICY IF EXISTS "Enable delete for all authenticated users on policies" ON public.policies;
+
+DROP POLICY IF EXISTS "Enable read access for all authenticated users on reports" ON public.reports;
+DROP POLICY IF EXISTS "Enable insert for all authenticated users on reports" ON public.reports;
+DROP POLICY IF EXISTS "Enable update for all authenticated users on reports" ON public.reports;
+DROP POLICY IF EXISTS "Enable delete for all authenticated users on reports" ON public.reports;
+
+DROP POLICY IF EXISTS "Enable read access for all authenticated users on curriculums" ON public.curriculums;
+DROP POLICY IF EXISTS "Enable insert for all authenticated users on curriculums" ON public.curriculums;
+DROP POLICY IF EXISTS "Enable update for all authenticated users on curriculums" ON public.curriculums;
+DROP POLICY IF EXISTS "Enable delete for all authenticated users on curriculums" ON public.curriculums;
+
+DROP POLICY IF EXISTS "Enable read access for all authenticated users on contact_submissions" ON public.contact_submissions;
+DROP POLICY IF EXISTS "Enable insert for all authenticated users on contact_submissions" ON public.contact_submissions;
+DROP POLICY IF EXISTS "Enable update for all authenticated users on contact_submissions" ON public.contact_submissions;
+DROP POLICY IF EXISTS "Enable delete for all authenticated users on contact_submissions" ON public.contact_submissions;
+DROP POLICY IF EXISTS "Enable read access for authenticated users" ON public.contact_submissions;
+DROP POLICY IF EXISTS "Enable insert access for all users" ON public.contact_submissions;
+DROP POLICY IF EXISTS "Enable update access for authenticated users" ON public.contact_submissions;
+DROP POLICY IF EXISTS "Enable delete access for authenticated users" ON public.contact_submissions;
+DROP POLICY IF EXISTS "Enable public insert for contact form" ON public.contact_submissions;
+
+DROP POLICY IF EXISTS "Enable read access for all authenticated users on application_submissions" ON public.application_submissions;
+DROP POLICY IF EXISTS "Enable insert for all authenticated users on application_submissions" ON public.application_submissions;
+DROP POLICY IF EXISTS "Enable update for all authenticated users on application_submissions" ON public.application_submissions;
+DROP POLICY IF EXISTS "Enable delete for all authenticated users on application_submissions" ON public.application_submissions;
+DROP POLICY IF EXISTS "Enable read access for authenticated users" ON public.application_submissions;
+DROP POLICY IF EXISTS "Enable insert access for all users" ON public.application_submissions;
+DROP POLICY IF EXISTS "Enable update access for authenticated users" ON public.application_submissions;
+DROP POLICY IF EXISTS "Enable delete access for authenticated users" ON public.application_submissions;
+DROP POLICY IF EXISTS "Enable public insert for application form" ON public.application_submissions;
+
+DROP POLICY IF EXISTS "Enable read access for all authenticated users on inquiries" ON public.inquiries;
+DROP POLICY IF EXISTS "Enable insert for all authenticated users on inquiries" ON public.inquiries;
+DROP POLICY IF EXISTS "Enable update for all authenticated users on inquiries" ON public.inquiries;
+DROP POLICY IF EXISTS "Enable delete for all authenticated users on inquiries" ON public.inquiries;
+
+-- Policies specifically for the 'users' table
+DROP POLICY IF EXISTS "Enable read access for all authenticated users on users" ON public.users;
+DROP POLICY IF EXISTS "Enable insert for all authenticated users on users" ON public.users;
+DROP POLICY IF EXISTS "Enable update for all authenticated users on users" ON public.users;
+DROP POLICY IF EXISTS "Enable delete for all authenticated users on users" ON public.users;
+DROP POLICY IF EXISTS "Users can read their own data" ON public.users;
+DROP POLICY IF EXISTS "Users can update their own data" ON public.users;
+DROP POLICY IF EXISTS "Users can insert data" ON public.users;
+DROP POLICY IF EXISTS "Admins can delete any user" ON public.users;
+
+-- Ensure RLS is enabled for tables that will have policies
+ALTER TABLE public.users ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.contact_submissions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.application_submissions ENABLE ROW LEVEL SECURITY;
+
+-- Re-create policies as per user's request
+
 -- RLS Policies for 'courses' table
 CREATE POLICY "Enable read access for all authenticated users on courses"
 ON public.courses FOR SELECT
@@ -63,6 +159,10 @@ CREATE POLICY "Enable delete for all authenticated users on careers"
 ON public.careers FOR DELETE
 TO authenticated
 USING (true);
+alter policy "Enable read access for all users"
+on "public"."careers"
+to public
+using (true);
 
 -- RLS Policies for 'gallery_images' table
 CREATE POLICY "Enable read access for all authenticated users on gallery_images"
@@ -96,7 +196,6 @@ CREATE POLICY "Enable insert for all authenticated users on testimonials"
 ON public.testimonials FOR INSERT
 TO authenticated
 WITH CHECK (true);
-
 CREATE POLICY "Enable update for all authenticated users on testimonials"
 ON public.testimonials FOR UPDATE
 TO authenticated

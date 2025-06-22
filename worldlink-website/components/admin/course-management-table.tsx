@@ -19,8 +19,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { useToast } from "@/components/ui/use-toast"
-import { ToastAction } from "@/components/ui/toast"
+import { toast } from "sonner"
 
 interface Course {
   id: number;
@@ -45,6 +44,31 @@ interface Course {
   syllabus_url: string;
   created_at: string;
   updated_at: string;
+  slug: string;
+}
+
+// Add a type for the form state that allows undefined for number fields
+interface CourseFormData {
+  title: string;
+  description: string;
+  category: string;
+  level: 'beginner' | 'intermediate' | 'advanced';
+  duration_weeks?: number;
+  price?: number;
+  instructor_name: string;
+  instructor_bio: string;
+  max_students?: number;
+  start_date: string;
+  end_date: string;
+  schedule: string;
+  prerequisites: string[];
+  learning_outcomes: string[];
+  course_materials: string[];
+  is_active: boolean;
+  is_featured: boolean;
+  image_url: string;
+  syllabus_url: string;
+  slug: string;
 }
 
 export default function CoursesManagement() {
@@ -60,9 +84,6 @@ export default function CoursesManagement() {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
 
-  // Toast state
-  const { toast } = useToast();
-
   // File upload states
   const [selectedImageFile, setSelectedImageFile] = useState<File | null>(null);
   const [selectedSyllabusFile, setSelectedSyllabusFile] = useState<File | null>(null);
@@ -74,16 +95,16 @@ export default function CoursesManagement() {
 
   const supabase = getSupabaseBrowserClient();
 
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<CourseFormData>({
     title: '',
     description: '',
     category: '',
-    level: 'beginner' as 'beginner' | 'intermediate' | 'advanced',
-    duration_weeks: 1,
-    price: 0,
+    level: 'beginner',
+    duration_weeks: undefined,
+    price: undefined,
     instructor_name: '',
     instructor_bio: '',
-    max_students: 1,
+    max_students: undefined,
     start_date: '',
     end_date: '',
     schedule: '',
@@ -93,8 +114,12 @@ export default function CoursesManagement() {
     is_active: true,
     is_featured: false,
     image_url: '',
-    syllabus_url: ''
+    syllabus_url: '',
+    slug: '',
   });
+
+  const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
+  const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
 
   useEffect(() => {
     fetchCourses();
@@ -114,39 +139,43 @@ export default function CoursesManagement() {
         throw new Error(error.message);
       }
       setCourses(data || []);
-      toast({
-        title: "Courses fetched successfully",
-        description: `Found ${data.length} courses.`,
-      });
+      toast.success("Courses fetched successfully.");
     } catch (err) {
       console.error('Error in fetchCourses:', err);
       setError(err instanceof Error ? err.message : 'Failed to fetch courses');
-      toast({
-        title: "Error fetching courses",
-        description: err instanceof Error ? err.message : 'Failed to fetch courses',
-        variant: "destructive",
-      });
+      toast.error(err instanceof Error ? err.message : 'Failed to fetch courses');
     } finally {
       setLoading(false);
     }
   };
 
   // File upload function
-  const uploadFile = async (file: File, bucket: string, folder: string): Promise<string> => {
-    const fileExt = file.name.split('.').pop();
-    const fileName = `${folder}/${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
-    
-    const { data, error } = await supabase.storage
-      .from(bucket)
-      .upload(fileName, file);
+  const uploadFile = async (file: File): Promise<string> => {
+    const formData = new FormData();
+    formData.append('file', file);
 
-    if (error) throw error;
+    const res = await fetch('/api/upload', {
+      method: 'POST',
+      body: formData,
+    });
 
-    const { data: { publicUrl } } = supabase.storage
-      .from(bucket)
-      .getPublicUrl(fileName);
+    if (!res.ok) {
+      const errorData = await res.json();
+      throw new Error(errorData.error || 'Failed to upload file');
+    }
 
-    return publicUrl;
+    const data = await res.json();
+    return data.url; // This is the public URL to use
+  };
+
+  // Utility to generate slug from title
+  const generateSlug = (title: string) => {
+    return title
+      .toLowerCase()
+      .replace(/[^a-z0-9 -]/g, '')
+      .replace(/\s+/g, '-')
+      .replace(/-+/g, '-')
+      .trim();
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -162,7 +191,7 @@ export default function CoursesManagement() {
       // Upload image file if selected
       if (selectedImageFile) {
         try {
-          imageUrl = await uploadFile(selectedImageFile, 'course-files', 'images');
+          imageUrl = await uploadFile(selectedImageFile);
         } catch (err) {
           throw new Error('Failed to upload image file: ' + (err instanceof Error ? err.message : 'Unknown error'));
         }
@@ -171,7 +200,7 @@ export default function CoursesManagement() {
       // Upload syllabus file if selected
       if (selectedSyllabusFile) {
         try {
-          syllabusUrl = await uploadFile(selectedSyllabusFile, 'course-files', 'syllabus');
+          syllabusUrl = await uploadFile(selectedSyllabusFile);
         } catch (err) {
           throw new Error('Failed to upload syllabus file: ' + (err instanceof Error ? err.message : 'Unknown error'));
         }
@@ -184,7 +213,11 @@ export default function CoursesManagement() {
         prerequisites: formData.prerequisites.filter(req => req.trim() !== ''),
         learning_outcomes: formData.learning_outcomes.filter(outcome => outcome.trim() !== ''),
         course_materials: formData.course_materials.filter(material => material.trim() !== ''),
-        updated_at: new Date().toISOString()
+        updated_at: new Date().toISOString(),
+        slug: formData.slug || generateSlug(formData.title),
+        duration_weeks: formData.duration_weeks ?? 1,
+        price: formData.price ?? 0,
+        max_students: formData.max_students ?? 1,
       };
 
       if (editingCourse) {
@@ -211,18 +244,11 @@ export default function CoursesManagement() {
       await fetchCourses();
       resetForm();
       setShowModal(false);
-      toast({
-        title: "Course saved successfully",
-        description: editingCourse ? "Course has been updated." : "New course has been added.",
-      });
+      toast.success("Course saved successfully.");
     } catch (err) {
       console.error('Error in handleSubmit:', err);
       setError(err instanceof Error ? err.message : 'Failed to save course');
-      toast({
-        title: "Failed to save course",
-        description: err instanceof Error ? err.message : 'Unknown error during save.',
-        variant: "destructive",
-      });
+      toast.error(err instanceof Error ? err.message : 'Unknown error during save.');
     } finally {
       setLoading(false);
       setUploadingFiles(false);
@@ -245,18 +271,11 @@ export default function CoursesManagement() {
         throw new Error(error.message);
       }
       await fetchCourses();
-      toast({
-        title: "Course deleted successfully",
-        description: "The course has been removed.",
-      });
+      toast.success("Course deleted successfully.");
     } catch (err) {
       console.error('Error in handleDelete:', err);
       setError(err instanceof Error ? err.message : 'Failed to delete course');
-      toast({
-        title: "Failed to delete course",
-        description: err instanceof Error ? err.message : 'Unknown error during delete.',
-        variant: "destructive",
-      });
+      toast.error(err instanceof Error ? err.message : 'Unknown error during delete.');
     } finally {
       setLoading(false);
     }
@@ -274,17 +293,10 @@ export default function CoursesManagement() {
       
       if (error) throw error;
       await fetchCourses();
-      toast({
-        title: "Course status updated",
-        description: `Course is now ${course.is_active ? 'inactive' : 'active'}.`,
-      });
+      toast.success(`Course is now ${course.is_active ? 'inactive' : 'active'}.`);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to update course status');
-      toast({
-        title: "Failed to update course status",
-        description: err instanceof Error ? err.message : 'Unknown error.',
-        variant: "destructive",
-      });
+      toast.error(err instanceof Error ? err.message : 'Unknown error.');
     }
   };
 
@@ -300,17 +312,10 @@ export default function CoursesManagement() {
       
       if (error) throw error;
       await fetchCourses();
-      toast({
-        title: "Course featured status updated",
-        description: `Course is now ${course.is_featured ? 'regular' : 'featured'}.`,
-      });
+      toast.success(`Course is now ${course.is_featured ? 'regular' : 'featured'}.`);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to update featured status');
-      toast({
-        title: "Failed to update featured status",
-        description: err instanceof Error ? err.message : 'Unknown error.',
-        variant: "destructive",
-      });
+      toast.error(err instanceof Error ? err.message : 'Unknown error.');
     }
   };
 
@@ -319,12 +324,12 @@ export default function CoursesManagement() {
       title: '',
       description: '',
       category: '',
-      level: 'beginner' as 'beginner' | 'intermediate' | 'advanced',
-      duration_weeks: 1,
-      price: 0,
+      level: 'beginner',
+      duration_weeks: undefined,
+      price: undefined,
       instructor_name: '',
       instructor_bio: '',
-      max_students: 1,
+      max_students: undefined,
       start_date: '',
       end_date: '',
       schedule: '',
@@ -334,7 +339,8 @@ export default function CoursesManagement() {
       is_active: true,
       is_featured: false,
       image_url: '',
-      syllabus_url: ''
+      syllabus_url: '',
+      slug: '',
     });
     setEditingCourse(null);
     setSelectedImageFile(null);
@@ -350,11 +356,11 @@ export default function CoursesManagement() {
       description: course.description || '',
       category: course.category || '',
       level: course.level || 'beginner',
-      duration_weeks: course.duration_weeks || 1,
-      price: course.price || 0,
+      duration_weeks: course.duration_weeks,
+      price: course.price,
       instructor_name: course.instructor_name || '',
       instructor_bio: course.instructor_bio || '',
-      max_students: course.max_students || 1,
+      max_students: course.max_students,
       start_date: course.start_date ? course.start_date.split('T')[0] : '',
       end_date: course.end_date ? course.end_date.split('T')[0] : '',
       schedule: course.schedule || '',
@@ -364,7 +370,8 @@ export default function CoursesManagement() {
       is_active: course.is_active ?? true,
       is_featured: course.is_featured ?? false,
       image_url: course.image_url || '',
-      syllabus_url: course.syllabus_url || ''
+      syllabus_url: course.syllabus_url || '',
+      slug: course.slug || '',
     });
     setShowModal(true);
   };
@@ -467,118 +474,107 @@ export default function CoursesManagement() {
 
   const categories = [...new Set(courses.map(course => course.category))];
 
+  const handleViewDetails = (course: Course) => {
+    setSelectedCourse(course);
+    setIsViewDialogOpen(true);
+  };
+
   if (loading && courses.length === 0) {
     return (
-      <div className="flex justify-center items-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      <div className="flex items-center justify-center p-8">
+        <Loader2 className="h-8 w-8 animate-spin" />
+        <span className="ml-2">Loading courses...</span>
       </div>
     );
   }
 
   return (
-    <div className="p-6">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Courses Management</h1>
-        <button
-          onClick={() => {
-            resetForm();
-            setShowModal(true);
-          }}
-          className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center gap-2"
-        >
-          <Plus className="w-4 h-4" />
-          Add Course
-        </button>
-      </div>
-
+    <div className="space-y-4">
       {error && (
         <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-4">
           {error}
         </div>
       )}
 
-      {/* Filters */}
-      <div className="bg-white p-4 rounded-lg shadow mb-6">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-            <input
-              type="text"
-              placeholder="Search courses..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg w-full focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            />
-          </div>
-          
-          <select
-            value={filterCategory}
-            onChange={(e) => setFilterCategory(e.target.value)}
-            className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          >
-            <option value="">All Categories</option>
-            {categories.map(category => (
-              <option key={category} value={category}>{category}</option>
-            ))}
-          </select>
-
-          <select
-            value={filterLevel}
-            onChange={(e) => setFilterLevel(e.target.value)}
-            className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          >
-            <option value="">All Levels</option>
-            <option value="beginner">Beginner</option>
-            <option value="intermediate">Intermediate</option>
-            <option value="advanced">Advanced</option>
-          </select>
-
-          <select
-            value={filterStatus}
-            onChange={(e) => setFilterStatus(e.target.value)}
-            className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          >
-            <option value="">All Status</option>
-            <option value="active">Active</option>
-            <option value="inactive">Inactive</option>
-            <option value="featured">Featured</option>
-          </select>
+      {/* Filters/Search/Add Bar */}
+      <div className="flex flex-col sm:flex-row gap-4">
+        <div className="relative flex-1">
+          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Search courses..."
+            className="pl-8"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
         </div>
+        <Select value={filterCategory || 'all'} onValueChange={v => setFilterCategory(v === 'all' ? '' : v)}>
+          <SelectTrigger className="w-[180px]">
+            <SelectValue placeholder="Filter by category" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Categories</SelectItem>
+            {categories.map((category) => (
+              <SelectItem key={category} value={category}>
+                {category}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Select value={filterLevel || 'all'} onValueChange={v => setFilterLevel(v === 'all' ? '' : v)}>
+          <SelectTrigger className="w-[150px]">
+            <SelectValue placeholder="Filter by level" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Levels</SelectItem>
+            <SelectItem value="beginner">Beginner</SelectItem>
+            <SelectItem value="intermediate">Intermediate</SelectItem>
+            <SelectItem value="advanced">Advanced</SelectItem>
+          </SelectContent>
+        </Select>
+        <Select value={filterStatus || 'all'} onValueChange={v => setFilterStatus(v === 'all' ? '' : v)}>
+          <SelectTrigger className="w-[150px]">
+            <SelectValue placeholder="Filter by status" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Status</SelectItem>
+            <SelectItem value="active">Active</SelectItem>
+            <SelectItem value="inactive">Inactive</SelectItem>
+            <SelectItem value="featured">Featured</SelectItem>
+          </SelectContent>
+        </Select>
+        <Button onClick={() => { resetForm(); setShowModal(true); }}>
+          <Plus className="mr-2 h-4 w-4" />
+          Add Course
+        </Button>
       </div>
 
       {/* Courses Table */}
-      <div className="bg-white rounded-lg shadow overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Course Details
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Instructor & Category
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Enrollment & Duration
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Price & Dates
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Status
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {paginatedCourses.map((course) => (
-                <tr key={course.id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4">
+      <div className="rounded-md border">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Course Details</TableHead>
+              <TableHead>Instructor & Category</TableHead>
+              <TableHead>Enrollment & Duration</TableHead>
+              <TableHead>Price & Dates</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead className="text-right">Actions</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {paginatedCourses.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                  No courses found
+                </TableCell>
+              </TableRow>
+            ) : (
+              paginatedCourses.map((course) => (
+                <TableRow key={course.id}>
+                  <TableCell>
                     <div>
-                      <div className="text-sm font-medium text-gray-900">{course.title}</div>
-                      <div className="text-sm text-gray-500 capitalize flex items-center gap-2">
+                      <div className="font-medium">{course.title}</div>
+                      <div className="text-sm text-muted-foreground truncate max-w-xs flex items-center gap-2">
                         <BookOpen className="w-3 h-3" />
                         {course.level} Level
                       </div>
@@ -588,32 +584,32 @@ export default function CoursesManagement() {
                         </span>
                       )}
                     </div>
-                  </td>
-                  <td className="px-6 py-4">
+                  </TableCell>
+                  <TableCell>
                     <div className="text-sm text-gray-900">{course.instructor_name}</div>
-                    <div className="text-sm text-gray-500">{course.category}</div>
-                  </td>
-                  <td className="px-6 py-4">
+                    <div className="text-sm text-muted-foreground">{course.category}</div>
+                  </TableCell>
+                  <TableCell>
                     <div className="text-sm text-gray-900 flex items-center gap-1">
                       <Users className="w-3 h-3" />
                       {course.max_students} students
                     </div>
-                    <div className="text-sm text-gray-500 flex items-center gap-1">
+                    <div className="text-sm text-muted-foreground flex items-center gap-1">
                       <Clock className="w-3 h-3" />
                       {course.duration_weeks} weeks
                     </div>
-                  </td>
-                  <td className="px-6 py-4">
+                  </TableCell>
+                  <TableCell>
                     <div className="text-sm text-gray-900 flex items-center gap-1">
                       <DollarSign className="w-3 h-3" />
                       ${course.price}
                     </div>
-                    <div className="text-sm text-gray-500 flex items-center gap-1">
+                    <div className="text-sm text-muted-foreground flex items-center gap-1">
                       <Calendar className="w-3 h-3" />
                       {new Date(course.start_date).toLocaleDateString()}
                     </div>
-                  </td>
-                  <td className="px-6 py-4">
+                  </TableCell>
+                  <TableCell>
                     <div className="flex flex-col gap-1">
                       <button
                         onClick={() => toggleStatus(course)}
@@ -646,8 +642,8 @@ export default function CoursesManagement() {
                         {course.is_featured ? 'Featured' : 'Regular'}
                       </button>
                     </div>
-                  </td>
-                  <td className="px-6 py-4 text-sm font-medium">
+                  </TableCell>
+                  <TableCell className="text-right">
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <Button variant="ghost" className="h-8 w-8 p-0">
@@ -657,9 +653,9 @@ export default function CoursesManagement() {
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
                         <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                        <DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleViewDetails(course)}>
                           <Eye className="mr-2 h-4 w-4" />
-                          View Course
+                          View Details
                         </DropdownMenuItem>
                         <DropdownMenuItem onClick={() => handleEdit(course)}>
                           <Edit className="mr-2 h-4 w-4" />
@@ -707,63 +703,63 @@ export default function CoursesManagement() {
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
+          </TableBody>
+        </Table>
+      </div>
 
-        {/* Pagination */}
-        {totalPages > 1 && (
-          <div className="bg-white px-4 py-3 flex items-center justify-between border-t border-gray-200">
-            <div className="flex-1 flex justify-between sm:hidden">
-              <button
-                onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-                disabled={currentPage === 1}
-                className="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50"
-              >
-                Previous
-              </button>
-              <button
-                onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-                disabled={currentPage === totalPages}
-                className="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50"
-              >
-                Next
-              </button>
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div className="bg-white px-4 py-3 flex items-center justify-between border-t border-gray-200">
+          <div className="flex-1 flex justify-between sm:hidden">
+            <button
+              onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+              disabled={currentPage === 1}
+              className="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50"
+            >
+              Previous
+            </button>
+            <button
+              onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+              disabled={currentPage === totalPages}
+              className="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50"
+            >
+              Next
+            </button>
+          </div>
+          <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+            <div>
+              <p className="text-sm text-gray-700">
+                Showing <span className="font-medium">{(currentPage - 1) * itemsPerPage + 1}</span> to{' '}
+                <span className="font-medium">
+                  {Math.min(currentPage * itemsPerPage, filteredCourses.length)}
+                </span>{' '}
+                of <span className="font-medium">{filteredCourses.length}</span> results
+              </p>
             </div>
-            <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
-              <div>
-                <p className="text-sm text-gray-700">
-                  Showing <span className="font-medium">{(currentPage - 1) * itemsPerPage + 1}</span> to{' '}
-                  <span className="font-medium">
-                    {Math.min(currentPage * itemsPerPage, filteredCourses.length)}
-                  </span>{' '}
-                  of <span className="font-medium">{filteredCourses.length}</span> results
-                </p>
-              </div>
-              <div>
-                <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px">
-                  {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-                    <button
-                      key={page}
-                      onClick={() => setCurrentPage(page)}
-                      className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${
-                        page === currentPage
-                          ? 'z-10 bg-indigo-50 border-indigo-500 text-indigo-600'
-                          : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50'
-                      }`}
-                    >
-                      {page}
-                    </button>
-                  ))}
-                </nav>
-              </div>
+            <div>
+              <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px">
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                  <button
+                    key={page}
+                    onClick={() => setCurrentPage(page)}
+                    className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${
+                      page === currentPage
+                        ? 'z-10 bg-indigo-50 border-indigo-500 text-indigo-600'
+                        : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50'
+                    }`}
+                  >
+                    {page}
+                  </button>
+                ))}
+              </nav>
             </div>
           </div>
-        )}
-      </div>
+        </div>
+      )}
 
       {/* Modal */}
       {showModal && (
@@ -787,12 +783,30 @@ export default function CoursesManagement() {
 
                 <div>
                   <Label htmlFor="category">Category *</Label>
-                  <Input
-                    id="category"
-                    value={formData.category}
-                    onChange={(e) => setFormData(prev => ({ ...prev, category: e.target.value }))}
-                    placeholder="Enter category"
-                  />
+                  {categories.length > 0 ? (
+                    <Select
+                      value={formData.category}
+                      onValueChange={(value) => setFormData(prev => ({ ...prev, category: value }))}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select category" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {categories.map((category) => (
+                          <SelectItem key={category} value={category}>
+                            {category}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  ) : (
+                    <Input
+                      id="category"
+                      value={formData.category}
+                      onChange={(e) => setFormData(prev => ({ ...prev, category: e.target.value }))}
+                      placeholder="Enter category"
+                    />
+                  )}
                 </div>
 
                 <div>
@@ -818,13 +832,12 @@ export default function CoursesManagement() {
                     id="duration"
                     type="number"
                     min="1"
-                    value={typeof formData.duration_weeks !== 'number' || !Number.isFinite(formData.duration_weeks) ? '' : String(formData.duration_weeks)}
+                    value={formData.duration_weeks === undefined || formData.duration_weeks === null ? '' : String(formData.duration_weeks)}
                     onChange={(e) => {
                       const value = e.target.value;
-                      const num = Number(value);
                       setFormData(prev => ({
                         ...prev,
-                        duration_weeks: (isNaN(num) || value === '') ? 1 : num
+                        duration_weeks: value === '' ? undefined : Number(value)
                       }));
                     }}
                   />
@@ -837,13 +850,12 @@ export default function CoursesManagement() {
                     type="number"
                     min="0"
                     step="0.01"
-                    value={typeof formData.price !== 'number' || !Number.isFinite(formData.price) ? '' : String(formData.price)}
+                    value={formData.price === undefined || formData.price === null ? '' : String(formData.price)}
                     onChange={(e) => {
                       const value = e.target.value;
-                      const num = Number(value);
                       setFormData(prev => ({
                         ...prev,
-                        price: (isNaN(num) || value === '') ? 0 : num
+                        price: value === '' ? undefined : Number(value)
                       }));
                     }}
                   />
@@ -855,13 +867,12 @@ export default function CoursesManagement() {
                     id="max_students"
                     type="number"
                     min="1"
-                    value={typeof formData.max_students !== 'number' || !Number.isFinite(formData.max_students) ? '' : String(formData.max_students)}
+                    value={formData.max_students === undefined || formData.max_students === null ? '' : String(formData.max_students)}
                     onChange={(e) => {
                       const value = e.target.value;
-                      const num = Number(value);
                       setFormData(prev => ({
                         ...prev,
-                        max_students: (isNaN(num) || value === '') ? 1 : num
+                        max_students: value === '' ? undefined : Number(value)
                       }));
                     }}
                   />
@@ -1171,6 +1182,115 @@ export default function CoursesManagement() {
           </DialogContent>
         </Dialog>
       )}
+
+      {/* View Details Dialog */}
+      <Dialog open={isViewDialogOpen} onOpenChange={setIsViewDialogOpen}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Course Details</DialogTitle>
+          </DialogHeader>
+          {selectedCourse && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-sm font-medium">Title</label>
+                  <p className="text-sm text-muted-foreground">{selectedCourse.title}</p>
+                </div>
+                <div>
+                  <label className="text-sm font-medium">Category</label>
+                  <p className="text-sm text-muted-foreground">{selectedCourse.category}</p>
+                </div>
+                <div>
+                  <label className="text-sm font-medium">Level</label>
+                  <p className="text-sm text-muted-foreground">{selectedCourse.level}</p>
+                </div>
+                <div>
+                  <label className="text-sm font-medium">Duration (weeks)</label>
+                  <p className="text-sm text-muted-foreground">{selectedCourse.duration_weeks}</p>
+                </div>
+                <div>
+                  <label className="text-sm font-medium">Price</label>
+                  <p className="text-sm text-muted-foreground">${selectedCourse.price}</p>
+                </div>
+                <div>
+                  <label className="text-sm font-medium">Max Students</label>
+                  <p className="text-sm text-muted-foreground">{selectedCourse.max_students}</p>
+                </div>
+                <div>
+                  <label className="text-sm font-medium">Start Date</label>
+                  <p className="text-sm text-muted-foreground">{new Date(selectedCourse.start_date).toLocaleDateString()}</p>
+                </div>
+                <div>
+                  <label className="text-sm font-medium">End Date</label>
+                  <p className="text-sm text-muted-foreground">{new Date(selectedCourse.end_date).toLocaleDateString()}</p>
+                </div>
+              </div>
+              <div>
+                <label className="text-sm font-medium">Instructor Name</label>
+                <p className="text-sm text-muted-foreground">{selectedCourse.instructor_name}</p>
+              </div>
+              <div>
+                <label className="text-sm font-medium">Instructor Bio</label>
+                <p className="text-sm text-muted-foreground">{selectedCourse.instructor_bio}</p>
+              </div>
+              <div>
+                <label className="text-sm font-medium">Schedule</label>
+                <p className="text-sm text-muted-foreground">{selectedCourse.schedule}</p>
+              </div>
+              <div>
+                <label className="text-sm font-medium">Description</label>
+                <p className="text-sm text-muted-foreground">{selectedCourse.description}</p>
+              </div>
+              <div>
+                <label className="text-sm font-medium">Prerequisites</label>
+                <ul className="text-sm text-muted-foreground list-disc ml-5">
+                  {selectedCourse.prerequisites.map((item, idx) => <li key={idx}>{item}</li>)}
+                </ul>
+              </div>
+              <div>
+                <label className="text-sm font-medium">Learning Outcomes</label>
+                <ul className="text-sm text-muted-foreground list-disc ml-5">
+                  {selectedCourse.learning_outcomes.map((item, idx) => <li key={idx}>{item}</li>)}
+                </ul>
+              </div>
+              <div>
+                <label className="text-sm font-medium">Course Materials</label>
+                <ul className="text-sm text-muted-foreground list-disc ml-5">
+                  {selectedCourse.course_materials.map((item, idx) => <li key={idx}>{item}</li>)}
+                </ul>
+              </div>
+              <div>
+                <label className="text-sm font-medium">Image</label>
+                {selectedCourse.image_url && <img src={selectedCourse.image_url} alt="Course" className="w-40 h-24 object-cover rounded mt-2" />}
+              </div>
+              <div>
+                <label className="text-sm font-medium">Syllabus</label>
+                {selectedCourse.syllabus_url && <a href={selectedCourse.syllabus_url} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">View Syllabus</a>}
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-sm font-medium">Status</label>
+                  <p className="text-sm text-muted-foreground">{selectedCourse.is_active ? 'Active' : 'Inactive'}</p>
+                </div>
+                <div>
+                  <label className="text-sm font-medium">Featured</label>
+                  <p className="text-sm text-muted-foreground">{selectedCourse.is_featured ? 'Yes' : 'No'}</p>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-sm font-medium">Created At</label>
+                  <p className="text-sm text-muted-foreground">{new Date(selectedCourse.created_at).toLocaleString()}</p>
+                </div>
+                <div>
+                  <label className="text-sm font-medium">Updated At</label>
+                  <p className="text-sm text-muted-foreground">{new Date(selectedCourse.updated_at).toLocaleString()}</p>
+                </div>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

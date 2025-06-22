@@ -62,6 +62,19 @@ CREATE TABLE news_articles (
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
+-- Add published column to news_articles table
+ALTER TABLE news_articles
+ADD COLUMN published BOOLEAN DEFAULT false;
+
+-- Update existing records to be published by default
+UPDATE news_articles
+SET published = true
+WHERE published IS NULL; 
+
+ALTER TABLE news_articles
+ALTER COLUMN date SET DEFAULT now();
+
+
 -- Create careers table
 CREATE TABLE careers (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
@@ -87,6 +100,8 @@ CREATE TABLE careers (
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
+ALTER TABLE careers
+ADD COLUMN is_active BOOLEAN DEFAULT TRUE;
 
 -- Create inquiries table
 CREATE TABLE inquiries (

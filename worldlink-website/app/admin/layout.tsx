@@ -1,14 +1,15 @@
-import AdminLayoutClient from "@/components/admin/admin-layout-client"
 import { Inter } from "next/font/google"
-import "../globals.css"
 import { ThemeProvider } from "@/components/theme-provider"
 import { AdminAuthProvider } from "@/contexts/auth-context"
+import AdminLayoutClient from "@/components/admin/admin-layout-client"
+import "@/app/globals.css"
+import { Toaster } from "sonner"
 
 const inter = Inter({ subsets: ["latin"] })
 
 export const metadata = {
-  title: "Admin Dashboard | World Link Technical Training Institute",
-  description: "Admin dashboard for World Link Technical Training Institute website management",
+  title: "Admin Dashboard - World Link Technical Training Institute",
+  description: "Admin dashboard for managing the World Link Technical Training Institute website",
 }
 
 export default function AdminLayout({
@@ -17,14 +18,11 @@ export default function AdminLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en" suppressHydrationWarning>
-      <body className={`${inter.className} flex flex-col h-full`}>
-        <ThemeProvider attribute="class" defaultTheme="light" enableSystem>
-          <AdminAuthProvider>
-            <AdminLayoutClient>{children}</AdminLayoutClient>
-          </AdminAuthProvider>
-        </ThemeProvider>
-      </body>
-    </html>
+    <ThemeProvider attribute="class" defaultTheme="light" enableSystem>
+      <AdminAuthProvider>
+        <AdminLayoutClient>{children}</AdminLayoutClient>
+      </AdminAuthProvider>
+      <Toaster position="bottom-right" richColors closeButton />
+    </ThemeProvider>
   )
 }

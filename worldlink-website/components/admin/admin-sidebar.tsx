@@ -77,12 +77,6 @@ const sidebarItems = [
     icon: Briefcase,
   },
   {
-    id: "inquiries",
-    title: "Inquiries",
-    href: "/admin/inquiries",
-    icon: FileQuestion,
-  },
-  {
     id: "contact-submissions",
     title: "Contact Submissions",
     href: "/admin/contact-submissions",
@@ -103,11 +97,28 @@ export default function AdminSidebar() {
 
   // Don't render sidebar if user is not logged in or not an admin
   if (isLoading) {
-    return null // or a loading spinner if you prefer
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-2 text-gray-600">Loading...</p>
+        </div>
+      </div>
+    )
   }
 
   if (!user || !isAdmin) {
-    return null
+    if (typeof window !== 'undefined') {
+      alert("You are not authorized to access the admin dashboard. Please log in as an admin.");
+      window.location.href = '/admin-login';
+    }
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-red-600 font-semibold">You are not authorized to access the admin dashboard. Please log in as an admin.</p>
+        </div>
+      </div>
+    )
   }
 
   return (

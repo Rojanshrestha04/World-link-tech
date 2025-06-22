@@ -1,5 +1,6 @@
 import SiteHeader from "@/components/site-header"
 import SiteFooter from "@/components/site-footer"
+import { Toaster } from "sonner"
 
 export default function MainLayout({
   children,
@@ -11,6 +12,7 @@ export default function MainLayout({
       <SiteHeader />
       <main className="flex-1 pt-16">{children}</main>
       <SiteFooter />
+      <Toaster position="bottom-right" richColors closeButton />
     </div>
   )
 } 

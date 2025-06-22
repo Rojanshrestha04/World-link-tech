@@ -38,6 +38,7 @@ Create a `.env.local` file in the root directory with your Supabase credentials:
 ```env
 NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+SUPABASE_SERVICE_ROLE_KEY=your_supabase_role_key
 ```
 
 ## 🚀 Development

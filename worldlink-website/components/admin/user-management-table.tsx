@@ -30,7 +30,7 @@ import {
   Calendar
 } from "lucide-react"
 import { getSupabaseBrowserClient } from "@/lib/supabase"
-import { useToast } from "@/hooks/use-toast"
+import { toast } from "sonner"
 
 interface User {
   id: string
@@ -41,6 +41,7 @@ interface User {
   last_sign_in_at?: string
   created_at: string
   updated_at: string
+  password?: string
 }
 
 export default function UserManagementTable() {
@@ -56,40 +57,27 @@ export default function UserManagementTable() {
     email: "",
     full_name: "",
     role: "user",
-    is_active: true
+    is_active: true,
+    password: ""
   })
   const [submitting, setSubmitting] = useState(false)
   const [deleting, setDeleting] = useState<string | null>(null)
   const [updatingStatus, setUpdatingStatus] = useState<string | null>(null)
-  const { toast } = useToast()
 
   // Fetch users from database
   const fetchUsers = async () => {
     try {
-      const supabase = getSupabaseBrowserClient()
-      const { data, error } = await supabase
-        .from('users')
-        .select('*')
-        .order('created_at', { ascending: false })
+      const response = await fetch('/api/admin/users')
+      const data = await response.json()
 
-      if (error) {
-        console.error('Error fetching users:', error)
-        toast({
-          title: "Error",
-          description: "Failed to fetch users",
-          variant: "destructive",
-        })
-        return
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to fetch users')
       }
 
-      setUsers(data || [])
+      setUsers(data.users || [])
     } catch (error) {
       console.error('Error:', error)
-      toast({
-        title: "Error",
-        description: "Failed to fetch users",
-        variant: "destructive",
-      })
+      toast.error(error instanceof Error ? error.message : "Failed to fetch users")
     } finally {
       setLoading(false)
     }
@@ -97,60 +85,57 @@ export default function UserManagementTable() {
 
   // Add new user
   const addUser = async () => {
-    if (!formData.email || !formData.full_name) {
-      toast({
-        title: "Error",
-        description: "Please fill in all required fields",
-        variant: "destructive",
-      })
+    if (!formData.email || !formData.password || !formData.full_name) {
+      toast.error("Please fill in all required fields")
+      return
+    }
+
+    // Validate email format
+    const emailRegex = /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/
+    if (!emailRegex.test(formData.email.trim())) {
+      toast.error("Please enter a valid email address")
       return
     }
 
     setSubmitting(true)
     try {
-      const supabase = getSupabaseBrowserClient()
-      const { data, error } = await supabase
-        .from('users')
-        .insert([{
-          ...formData,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        }])
-        .select()
+      const response = await fetch('/api/admin/users', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email: formData.email.trim(),
+          password: formData.password,
+          full_name: formData.full_name,
+          role: formData.role,
+          is_active: formData.is_active,
+        }),
+      })
 
-      if (error) {
-        console.error('Error adding user:', error)
-        toast({
-          title: "Error",
-          description: "Failed to add user",
-          variant: "destructive",
-        })
-        return
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to create user')
       }
 
-      if (data && data[0]) {
-        setUsers(prev => [data[0], ...prev])
+      if (data.user) {
+        setUsers(prev => [data.user, ...prev])
       }
 
       setFormData({
         email: "",
         full_name: "",
         role: "user",
-        is_active: true
+        is_active: true,
+        password: ""
       })
       setIsAddDialogOpen(false)
       
-      toast({
-        title: "Success",
-        description: "User added successfully",
-      })
+      toast.success("User added successfully")
     } catch (error) {
       console.error('Error:', error)
-      toast({
-        title: "Error",
-        description: "Failed to add user",
-        variant: "destructive",
-      })
+      toast.error(error instanceof Error ? error.message : "An unexpected error occurred")
     } finally {
       setSubmitting(false)
     }
@@ -159,64 +144,55 @@ export default function UserManagementTable() {
   // Update user
   const updateUser = async () => {
     if (!editingUser || !formData.email || !formData.full_name) {
-      toast({
-        title: "Error",
-        description: "Please fill in all required fields",
-        variant: "destructive",
-      })
+      toast.error("Please fill in all required fields")
       return
     }
 
     setSubmitting(true)
     try {
-      const supabase = getSupabaseBrowserClient()
-      const { error } = await supabase
-        .from('users')
-        .update({
-          ...formData,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', editingUser.id)
+      const response = await fetch(`/api/admin/users/${editingUser.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email: formData.email.trim(),
+          full_name: formData.full_name,
+          role: formData.role,
+          is_active: formData.is_active,
+        }),
+      })
 
-      if (error) {
-        console.error('Error updating user:', error)
-        toast({
-          title: "Error",
-          description: "Failed to update user",
-          variant: "destructive",
-        })
-        return
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to update user')
       }
 
-      // Update local state
-      setUsers(prev => 
-        prev.map(user => 
-          user.id === editingUser.id 
-            ? { ...user, ...formData, updated_at: new Date().toISOString() } 
-            : user
+      if (data.user) {
+        setUsers(prev => 
+          prev.map(user => 
+            user.id === editingUser.id 
+              ? { ...data.user }
+              : user
+          )
         )
-      )
+      }
 
       setFormData({
         email: "",
         full_name: "",
         role: "user",
-        is_active: true
+        is_active: true,
+        password: ""
       })
       setEditingUser(null)
       setIsEditDialogOpen(false)
       
-      toast({
-        title: "Success",
-        description: "User updated successfully",
-      })
+      toast.success("User updated successfully")
     } catch (error) {
       console.error('Error:', error)
-      toast({
-        title: "Error",
-        description: "Failed to update user",
-        variant: "destructive",
-      })
+      toast.error(error instanceof Error ? error.message : "An unexpected error occurred")
     } finally {
       setSubmitting(false)
     }
@@ -237,11 +213,7 @@ export default function UserManagementTable() {
 
       if (error) {
         console.error('Error updating status:', error)
-        toast({
-          title: "Error",
-          description: "Failed to update user status",
-          variant: "destructive",
-        })
+        toast.error("Failed to update user status")
         return
       }
 
@@ -254,17 +226,10 @@ export default function UserManagementTable() {
         )
       )
 
-      toast({
-        title: "Success",
-        description: `User ${!currentStatus ? 'activated' : 'deactivated'} successfully`,
-      })
+      toast.success(`User ${!currentStatus ? 'activated' : 'deactivated'} successfully`)
     } catch (error) {
       console.error('Error:', error)
-      toast({
-        title: "Error",
-        description: "Failed to update user status",
-        variant: "destructive",
-      })
+      toast.error("Failed to update user status")
     } finally {
       setUpdatingStatus(null)
     }
@@ -274,36 +239,23 @@ export default function UserManagementTable() {
   const deleteUser = async (id: string) => {
     setDeleting(id)
     try {
-      const supabase = getSupabaseBrowserClient()
-      const { error } = await supabase
-        .from('users')
-        .delete()
-        .eq('id', id)
+      const response = await fetch(`/api/admin/users/${id}`, {
+        method: 'DELETE',
+      })
 
-      if (error) {
-        console.error('Error deleting user:', error)
-        toast({
-          title: "Error",
-          description: "Failed to delete user",
-          variant: "destructive",
-        })
-        return
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to delete user')
       }
 
       // Update local state
       setUsers(prev => prev.filter(user => user.id !== id))
       
-      toast({
-        title: "Success",
-        description: "User deleted successfully",
-      })
+      toast.success("User deleted successfully")
     } catch (error) {
       console.error('Error:', error)
-      toast({
-        title: "Error",
-        description: "Failed to delete user",
-        variant: "destructive",
-      })
+      toast.error(error instanceof Error ? error.message : "Failed to delete user")
     } finally {
       setDeleting(null)
     }
@@ -316,7 +268,8 @@ export default function UserManagementTable() {
       email: user.email,
       full_name: user.full_name || "",
       role: user.role,
-      is_active: user.is_active
+      is_active: user.is_active,
+      password: ""
     })
     setIsEditDialogOpen(true)
   }
@@ -359,20 +312,7 @@ export default function UserManagementTable() {
   }
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
-    })
-  }
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center p-8">
-        <Loader2 className="h-8 w-8 animate-spin" />
-        <span className="ml-2">Loading users...</span>
-      </div>
-    )
+    return new Date(dateString).toLocaleString()
   }
 
   return (
@@ -427,8 +367,22 @@ export default function UserManagementTable() {
                   type="email"
                   required
                   value={formData.email}
-                  onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
+                  onChange={(e) => {
+                    console.log("Email input changed to:", e.target.value);
+                    setFormData(prev => ({ ...prev, email: e.target.value }));
+                  }}
                   placeholder="Enter email address"
+                />
+              </div>
+              <div>
+                <Label htmlFor="password">Password *</Label>
+                <Input
+                  id="password"
+                  type="password"
+                  required
+                  value={formData.password}
+                  onChange={(e) => setFormData(prev => ({ ...prev, password: e.target.value }))}
+                  placeholder="Enter password for the new user"
                 />
               </div>
               <div>
@@ -474,103 +428,6 @@ export default function UserManagementTable() {
             </div>
           </DialogContent>
         </Dialog>
-      </div>
-
-      <div className="rounded-md border">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>User</TableHead>
-              <TableHead>Role</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Last Sign In</TableHead>
-              <TableHead>Created</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {filteredUsers.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
-                  No users found
-                </TableCell>
-              </TableRow>
-            ) : (
-              filteredUsers.map((user) => (
-                <TableRow key={user.id}>
-                  <TableCell>
-                    <div>
-                      <div className="font-medium">{user.full_name || "No name"}</div>
-                      <div className="text-sm text-muted-foreground flex items-center">
-                        <Mail className="mr-1 h-3 w-3" />
-                        {user.email}
-                      </div>
-                    </div>
-                  </TableCell>
-                  <TableCell>{getRoleBadge(user.role)}</TableCell>
-                  <TableCell>{getStatusBadge(user.is_active)}</TableCell>
-                  <TableCell>
-                    {user.last_sign_in_at ? (
-                      <div className="flex items-center text-sm">
-                        <Calendar className="mr-1 h-3 w-3" />
-                        {formatDate(user.last_sign_in_at)}
-                      </div>
-                    ) : (
-                      <span className="text-muted-foreground">Never</span>
-                    )}
-                  </TableCell>
-                  <TableCell>{formatDate(user.created_at)}</TableCell>
-                  <TableCell className="text-right">
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" className="h-8 w-8 p-0">
-                          <span className="sr-only">Open menu</span>
-                          {(updatingStatus === user.id || deleting === user.id) ? (
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                          ) : (
-                            <MoreHorizontal className="h-4 w-4" />
-                          )}
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                        <DropdownMenuItem onClick={() => openEditDialog(user)}>
-                          <Edit className="mr-2 h-4 w-4" />
-                          Edit User
-                        </DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem
-                          onClick={() => toggleUserStatus(user.id, user.is_active)}
-                          disabled={updatingStatus === user.id}
-                        >
-                          {user.is_active ? (
-                            <>
-                              <User className="mr-2 h-4 w-4" />
-                              Deactivate
-                            </>
-                          ) : (
-                            <>
-                              <ShieldCheck className="mr-2 h-4 w-4" />
-                              Activate
-                            </>
-                          )}
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          onClick={() => deleteUser(user.id)}
-                          disabled={deleting === user.id}
-                          className="text-red-600"
-                        >
-                          <Trash2 className="mr-2 h-4 w-4" />
-                          Delete
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </TableCell>
-                </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
       </div>
 
       {/* Edit Dialog */}
@@ -633,6 +490,95 @@ export default function UserManagementTable() {
           </div>
         </DialogContent>
       </Dialog>
+
+      <div className="rounded-md border">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>User</TableHead>
+              <TableHead>Role</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead>Last Sign In</TableHead>
+              <TableHead>Created</TableHead>
+              <TableHead className="w-[100px]">Actions</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {loading ? (
+              <TableRow>
+                <TableCell colSpan={6} className="h-24 text-center">
+                  <Loader2 className="h-6 w-6 animate-spin mx-auto" />
+                </TableCell>
+              </TableRow>
+            ) : filteredUsers.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={6} className="h-24 text-center">
+                  No users found.
+                </TableCell>
+              </TableRow>
+            ) : (
+              filteredUsers.map((user) => (
+                <TableRow key={user.id}>
+                  <TableCell>
+                    <div className="flex flex-col">
+                      <span className="font-medium">{user.full_name || "No name"}</span>
+                      <span className="text-sm text-muted-foreground">{user.email}</span>
+                    </div>
+                  </TableCell>
+                  <TableCell>{getRoleBadge(user.role)}</TableCell>
+                  <TableCell>{getStatusBadge(user.is_active)}</TableCell>
+                  <TableCell>
+                    {user.last_sign_in_at ? formatDate(user.last_sign_in_at) : "Never"}
+                  </TableCell>
+                  <TableCell>{formatDate(user.created_at)}</TableCell>
+                  <TableCell>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" className="h-8 w-8 p-0">
+                          <span className="sr-only">Open menu</span>
+                          <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                        <DropdownMenuItem onClick={() => openEditDialog(user)}>
+                          <Edit className="mr-2 h-4 w-4" />
+                          Edit
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={() => toggleUserStatus(user.id, user.is_active)}
+                          disabled={updatingStatus === user.id}
+                        >
+                          {user.is_active ? (
+                            <>
+                              <Shield className="mr-2 h-4 w-4" />
+                              Deactivate
+                            </>
+                          ) : (
+                            <>
+                              <ShieldCheck className="mr-2 h-4 w-4" />
+                              Activate
+                            </>
+                          )}
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem
+                          onClick={() => deleteUser(user.id)}
+                          disabled={deleting === user.id}
+                          className="text-red-600"
+                        >
+                          <Trash2 className="mr-2 h-4 w-4" />
+                          Delete
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
+          </TableBody>
+        </Table>
+      </div>
     </div>
   )
 }

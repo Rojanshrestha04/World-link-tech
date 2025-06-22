@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useState, useEffect, useRef } from "react"
@@ -14,13 +13,14 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Edit, Eye, MoreHorizontal, Search, Trash2, Plus, Loader2, Calendar, Upload, X } from "lucide-react"
 import { getSupabaseBrowserClient } from "@/lib/supabase"
-import { useToast } from "@/hooks/use-toast"
+import { toast } from "sonner"
+import FileUpload from "@/components/ui/file-upload"
 
 interface NewsArticle {
   id: string
@@ -66,8 +66,6 @@ export default function NewsManagementTable() {
   const imageFileInputRef = useRef<HTMLInputElement>(null)
   const editImageFileInputRef = useRef<HTMLInputElement>(null)
   
-  const { toast } = useToast()
-
   // File upload function
   const uploadFile = async (file: File, bucket: string, folder: string): Promise<string> => {
     const fileExt = file.name.split('.').pop()
@@ -94,21 +92,13 @@ export default function NewsManagementTable() {
       // Validate file type
       const validImageTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp']
       if (!validImageTypes.includes(file.type)) {
-        toast({
-          title: "Error",
-          description: "Please select a valid image file (JPEG, PNG, GIF, or WebP)",
-          variant: "destructive",
-        })
+        toast.error("Please select a valid image file (JPEG, PNG, GIF, or WebP)")
         return
       }
       
       // Validate file size (max 5MB)
       if (file.size > 5 * 1024 * 1024) {
-        toast({
-          title: "Error",
-          description: "Image file size must be less than 5MB",
-          variant: "destructive",
-        })
+        toast.error("Image file size must be less than 5MB")
         return
       }
       
@@ -150,11 +140,7 @@ export default function NewsManagementTable() {
 
       if (error) {
         console.error('Error fetching articles:', error)
-        toast({
-          title: "Error",
-          description: "Failed to fetch news articles",
-          variant: "destructive",
-        })
+        toast.error("Failed to fetch news articles")
         return
       }
 
@@ -165,11 +151,7 @@ export default function NewsManagementTable() {
       setCategories(uniqueCategories)
     } catch (error) {
       console.error('Error:', error)
-      toast({
-        title: "Error",
-        description: "Failed to fetch news articles",
-        variant: "destructive",
-      })
+      toast.error("Failed to fetch news articles")
     } finally {
       setLoading(false)
     }
@@ -185,14 +167,15 @@ export default function NewsManagementTable() {
       .trim()
   }
 
+  // Handle image upload
+  const handleImageUpload = (file: File, url: string) => {
+    setFormData(prev => ({ ...prev, image: url }))
+  }
+
   // Add new article
   const addArticle = async () => {
     if (!formData.title || !formData.excerpt || !formData.content || !formData.category) {
-      toast({
-        title: "Error",
-        description: "Please fill in all required fields",
-        variant: "destructive",
-      })
+      toast.error("Please fill in all required fields")
       return
     }
 
@@ -202,26 +185,20 @@ export default function NewsManagementTable() {
     setUploadingFile(true)
     
     try {
-      let imageUrl = formData.image
-
-      // Upload image file if selected
-      if (selectedImageFile) {
-        imageUrl = await uploadFile(selectedImageFile, 'news-files', 'images')
-      }
-
       const supabase = getSupabaseBrowserClient()
       const { data, error } = await supabase
         .from('news_articles')
-        .insert([{ ...formData, slug, image: imageUrl }])
+        .insert([{ ...formData, slug }])
         .select()
 
       if (error) {
-        console.error('Error adding article:', error)
-        toast({
-          title: "Error",
-          description: "Failed to add article",
-          variant: "destructive",
-        })
+        // Log more details
+        if (error instanceof Error) {
+          console.error('Error:', error.message, error.stack)
+        } else {
+          console.error('Error:', JSON.stringify(error))
+        }
+        toast.error("Failed to add article")
         return
       }
 
@@ -237,17 +214,15 @@ export default function NewsManagementTable() {
       resetFormData()
       setIsAddDialogOpen(false)
       
-      toast({
-        title: "Success",
-        description: "Article added successfully",
-      })
+      toast.success("Article added successfully.")
     } catch (error) {
-      console.error('Error:', error)
-      toast({
-        title: "Error",
-        description: "Failed to add article",
-        variant: "destructive",
-      })
+      // Log more details
+      if (error instanceof Error) {
+        console.error('Error:', error.message, error.stack)
+      } else {
+        console.error('Error:', JSON.stringify(error))
+      }
+      toast.error("Failed to add article")
     } finally {
       setSubmitting(false)
       setUploadingFile(false)
@@ -257,72 +232,43 @@ export default function NewsManagementTable() {
   // Update article
   const updateArticle = async () => {
     if (!editingArticle || !formData.title || !formData.excerpt || !formData.content || !formData.category) {
-      toast({
-        title: "Error",
-        description: "Please fill in all required fields",
-        variant: "destructive",
-      })
+      toast.error("Please fill in all required fields")
       return
     }
 
-    const slug = formData.slug || generateSlug(formData.title)
-
     setSubmitting(true)
     setUploadingFile(true)
-    
-    try {
-      let imageUrl = formData.image
 
-      // Upload image file if selected
-      if (selectedImageFile) {
-        imageUrl = await uploadFile(selectedImageFile, 'news-files', 'images')
+    try {
+      const newsData = {
+        ...formData,
+        slug: formData.slug || generateSlug(formData.title),
+        updated_at: new Date().toISOString(),
       }
 
       const supabase = getSupabaseBrowserClient()
       const { error } = await supabase
         .from('news_articles')
-        .update({ ...formData, slug, image: imageUrl, updated_at: new Date().toISOString() })
+        .update(newsData)
         .eq('id', editingArticle.id)
 
       if (error) {
         console.error('Error updating article:', error)
-        toast({
-          title: "Error",
-          description: "Failed to update article",
-          variant: "destructive",
-        })
+        toast.error("Failed to update article")
         return
       }
 
-      // Update local state
-      setArticles(prev => 
-        prev.map(article => 
-          article.id === editingArticle.id 
-            ? { ...article, ...formData, slug, image: imageUrl, updated_at: new Date().toISOString() } 
-            : article
-        )
-      )
-
-      // Update categories if new category was added
-      if (!categories.includes(formData.category)) {
-        setCategories(prev => [...prev, formData.category])
-      }
+      // Re-fetch articles from the database for consistency
+      await fetchArticles()
 
       resetFormData()
       setEditingArticle(null)
       setIsEditDialogOpen(false)
       
-      toast({
-        title: "Success",
-        description: "Article updated successfully",
-      })
+      toast.success("Article updated successfully.")
     } catch (error) {
       console.error('Error:', error)
-      toast({
-        title: "Error",
-        description: "Failed to update article",
-        variant: "destructive",
-      })
+      toast.error("Failed to update article")
     } finally {
       setSubmitting(false)
       setUploadingFile(false)
@@ -334,18 +280,21 @@ export default function NewsManagementTable() {
     setUpdatingStatus(id)
     try {
       const supabase = getSupabaseBrowserClient()
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('news_articles')
         .update({ published: !currentStatus, updated_at: new Date().toISOString() })
         .eq('id', id)
+        .select()
 
       if (error) {
-        console.error('Error updating status:', error)
-        toast({
-          title: "Error",
-          description: "Failed to update article status",
-          variant: "destructive",
-        })
+        console.error('Error updating status:', error.message || error)
+        toast.error(error.message || "Failed to update article status")
+        return
+      }
+
+      if (!data || data.length === 0) {
+        console.error('No data returned after update')
+        toast.error("Failed to update article status: No data returned")
         return
       }
 
@@ -358,17 +307,10 @@ export default function NewsManagementTable() {
         )
       )
 
-      toast({
-        title: "Success",
-        description: `Article ${!currentStatus ? 'published' : 'unpublished'} successfully`,
-      })
+      toast.success(`Article ${!currentStatus ? 'published' : 'unpublished'} successfully.`)
     } catch (error) {
-      console.error('Error:', error)
-      toast({
-        title: "Error",
-        description: "Failed to update article status",
-        variant: "destructive",
-      })
+      console.error('Error:', error instanceof Error ? error.message : error)
+      toast.error(error instanceof Error ? error.message : "Failed to update article status")
     } finally {
       setUpdatingStatus(null)
     }
@@ -386,28 +328,17 @@ export default function NewsManagementTable() {
 
       if (error) {
         console.error('Error deleting article:', error)
-        toast({
-          title: "Error",
-          description: "Failed to delete article",
-          variant: "destructive",
-        })
+        toast.error("Failed to delete article")
         return
       }
 
       // Update local state
       setArticles(prev => prev.filter(article => article.id !== id))
       
-      toast({
-        title: "Success",
-        description: "Article deleted successfully",
-      })
+      toast.success("Article deleted successfully.")
     } catch (error) {
       console.error('Error:', error)
-      toast({
-        title: "Error",
-        description: "Failed to delete article",
-        variant: "destructive",
-      })
+      toast.error("Failed to delete article")
     } finally {
       setDeleting(null)
     }
@@ -417,16 +348,24 @@ export default function NewsManagementTable() {
   const openEditDialog = (article: NewsArticle) => {
     setEditingArticle(article)
     setFormData({
-      title: article.title,
-      slug: article.slug,
-      excerpt: article.excerpt,
-      content: article.content,
-      category: article.category,
-      image: article.image,
-      published: article.published
+      title: article.title || "",
+      slug: article.slug || "",
+      excerpt: article.excerpt || "",
+      content: article.content || "",
+      category: article.category || "",
+      image: article.image || "",
+      published: article.published ?? false
     })
     setSelectedImageFile(null)
     setIsEditDialogOpen(true)
+  }
+
+  const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null)
+  const [isViewDialogOpen, setIsViewDialogOpen] = useState(false)
+
+  const handleViewDetails = (article: NewsArticle) => {
+    setSelectedArticle(article)
+    setIsViewDialogOpen(true)
   }
 
   useEffect(() => {
@@ -516,6 +455,9 @@ export default function NewsManagementTable() {
           <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Add New Article</DialogTitle>
+              <DialogDescription>
+                Fill in the details below to add a new article.
+              </DialogDescription>
             </DialogHeader>
             <div className="space-y-4">
               <div>
@@ -545,51 +487,40 @@ export default function NewsManagementTable() {
               </div>
               <div>
                 <Label htmlFor="category">Category *</Label>
-                <Input
-                  id="category"
+                <Select
                   value={formData.category}
-                  onChange={(e) => setFormData(prev => ({ ...prev, category: e.target.value }))}
-                  placeholder="Enter category"
-                />
+                  onValueChange={(value) => setFormData(prev => ({ ...prev, category: value }))}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select a category">
+                      {formData.category === "news" && "News"}
+                      {formData.category === "notices" && "Notices"}
+                      {formData.category === "events" && "Events"}
+                    </SelectValue>
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="news">News</SelectItem>
+                    <SelectItem value="notices">Notices</SelectItem>
+                    <SelectItem value="events">Events</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
               
               {/* Image File Upload */}
               <div>
                 <Label htmlFor="image">Article Image</Label>
-                <div className="space-y-2">
-                  <input
-                    type="file"
-                    ref={imageFileInputRef}
-                    onChange={(e) => handleImageFileSelect(e, false)}
-                    accept="image/*"
-                    className="hidden"
-                  />
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => imageFileInputRef.current?.click()}
-                    className="w-full justify-start"
-                  >
-                    <Upload className="mr-2 h-4 w-4" />
-                    Choose Image File
-                  </Button>
-                  {selectedImageFile && (
-                    <div className="flex items-center justify-between bg-blue-50 px-3 py-2 rounded-md">
-                      <span className="text-sm text-blue-700 truncate">
-                        {selectedImageFile.name}
-                      </span>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        onClick={removeSelectedFile}
-                        className="text-red-500 hover:text-red-700 h-6 w-6 p-0"
-                      >
-                        <X className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  )}
-                </div>
+                <FileUpload
+                  onFileUpload={handleImageUpload}
+                  accept="image/*"
+                  maxSize={5}
+                  uploadEndpoint="/api/upload"
+                  className="mt-2"
+                />
+                {formData.image && (
+                  <div className="mt-2 text-sm text-muted-foreground">
+                    Current image: <a href={formData.image} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">View Image</a>
+                  </div>
+                )}
               </div>
 
               <div>
@@ -686,9 +617,9 @@ export default function NewsManagementTable() {
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
                         <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                        <DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleViewDetails(article)}>
                           <Eye className="mr-2 h-4 w-4" />
-                          View Article
+                          View Details
                         </DropdownMenuItem>
                         <DropdownMenuItem onClick={() => openEditDialog(article)}>
                           <Edit className="mr-2 h-4 w-4" />
@@ -754,66 +685,40 @@ export default function NewsManagementTable() {
             </div>
             <div>
               <Label htmlFor="edit-category">Category *</Label>
-              <Input
-                id="edit-category"
+              <Select
                 value={formData.category}
-                onChange={(e) => setFormData(prev => ({ ...prev, category: e.target.value }))}
-                placeholder="Enter category"
-              />
+                onValueChange={(value) => setFormData(prev => ({ ...prev, category: value }))}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select a category">
+                    {formData.category === "news" && "News"}
+                    {formData.category === "notices" && "Notices"}
+                    {formData.category === "events" && "Events"}
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="news">News</SelectItem>
+                  <SelectItem value="notices">Notices</SelectItem>
+                  <SelectItem value="events">Events</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
             
             {/* Edit Image File Upload */}
             <div>
               <Label htmlFor="edit-image">Article Image</Label>
-              <div className="space-y-2">
-                <input
-                  type="file"
-                  ref={editImageFileInputRef}
-                  onChange={(e) => handleImageFileSelect(e, true)}
-                  accept="image/*"
-                  className="hidden"
-                />
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => editImageFileInputRef.current?.click()}
-                  className="w-full justify-start"
-                >
-                  <Upload className="mr-2 h-4 w-4" />
-                  Choose New Image File
-                </Button>
-                {selectedImageFile && (
-                  <div className="flex items-center justify-between bg-blue-50 px-3 py-2 rounded-md">
-                    <span className="text-sm text-blue-700 truncate">
-                      {selectedImageFile.name}
-                    </span>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={removeSelectedFile}
-                      className="text-red-500 hover:text-red-700 h-6 w-6 p-0"
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
-                  </div>
-                )}
-                {editingArticle && formData.image && !selectedImageFile && (
-                  <div className="text-sm text-gray-500">
-                    Current: <a href={formData.image} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">View current image</a>
-                  </div>
-                )}
-                <div className="text-sm text-gray-500">
-                  Or enter image URL manually:
+              <FileUpload
+                onFileUpload={handleImageUpload}
+                accept="image/*"
+                maxSize={5}
+                uploadEndpoint="/api/upload"
+                className="mt-2"
+              />
+              {formData.image && (
+                <div className="mt-2 text-sm text-muted-foreground">
+                  Current image: <a href={formData.image} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">View Image</a>
                 </div>
-                <Input
-                  id="edit-image-url"
-                  value={formData.image}
-                  onChange={(e) => setFormData(prev => ({ ...prev, image: e.target.value }))}
-                  placeholder="Enter image URL"
-                  disabled={!!selectedImageFile}
-                />
-              </div>
+              )}
             </div>
 
             <div>
@@ -856,6 +761,58 @@ export default function NewsManagementTable() {
               )}
             </Button>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isViewDialogOpen} onOpenChange={setIsViewDialogOpen}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>News Details</DialogTitle>
+          </DialogHeader>
+          {selectedArticle && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-sm font-medium">Title</label>
+                  <p className="text-sm text-muted-foreground">{selectedArticle.title}</p>
+                </div>
+                <div>
+                  <label className="text-sm font-medium">Category</label>
+                  <p className="text-sm text-muted-foreground">{selectedArticle.category}</p>
+                </div>
+                <div>
+                  <label className="text-sm font-medium">Status</label>
+                  <p className="text-sm text-muted-foreground">{selectedArticle.published ? 'Published' : 'Draft'}</p>
+                </div>
+                <div>
+                  <label className="text-sm font-medium">Slug</label>
+                  <p className="text-sm text-muted-foreground">{selectedArticle.slug}</p>
+                </div>
+              </div>
+              <div>
+                <label className="text-sm font-medium">Excerpt</label>
+                <p className="text-sm text-muted-foreground">{selectedArticle.excerpt}</p>
+              </div>
+              <div>
+                <label className="text-sm font-medium">Content</label>
+                <p className="text-sm text-muted-foreground whitespace-pre-line">{selectedArticle.content}</p>
+              </div>
+              <div>
+                <label className="text-sm font-medium">Image</label>
+                {selectedArticle.image && <img src={selectedArticle.image} alt="Article" className="w-40 h-24 object-cover rounded mt-2" />}
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-sm font-medium">Created At</label>
+                  <p className="text-sm text-muted-foreground">{new Date(selectedArticle.created_at).toLocaleString()}</p>
+                </div>
+                <div>
+                  <label className="text-sm font-medium">Updated At</label>
+                  <p className="text-sm text-muted-foreground">{new Date(selectedArticle.updated_at).toLocaleString()}</p>
+                </div>
+              </div>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
     </div>

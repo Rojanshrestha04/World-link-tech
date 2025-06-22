@@ -1,7 +1,48 @@
+"use client"
+import { useEffect, useState } from "react"
 import Link from "next/link"
 import { MapPin, Phone, Mail, Facebook, Youtube, Instagram, Twitter } from "lucide-react"
 
 export default function Footer() {
+  const [courses, setCourses] = useState<{ title: string; slug: string }[]>([])
+  const [contact, setContact] = useState({
+    address: "Jawalakhel, Lalitpur\nKathmandu, Nepal",
+    phone: "01-5970000",
+    email: "info@worldlinktraining.edu.np",
+  })
+
+  useEffect(() => {
+    const fetchCourses = async () => {
+      try {
+        const res = await fetch("/api/courses")
+        if (!res.ok) return
+        const data = await res.json()
+        setCourses(data.slice(0, 5)) // Limit to 5
+      } catch (e) {
+        // handle error
+      }
+    }
+    fetchCourses()
+  }, [])
+
+  useEffect(() => {
+    const fetchContact = async () => {
+      try {
+        const res = await fetch("/api/settings")
+        if (!res.ok) return
+        const data = await res.json()
+        setContact({
+          address: data.address || "Jawalakhel, Lalitpur\nKathmandu, Nepal",
+          phone: data.contact_phone || "01-5970000",
+          email: data.contact_email || "info@worldlinktraining.edu.np",
+        })
+      } catch (e) {
+        // handle error, keep fallback
+      }
+    }
+    fetchContact()
+  }, [])
+
   return (
     <footer className="bg-slate-800 text-slate-300 pt-16 pb-8">
       <div className="container mx-auto px-4">
@@ -67,29 +108,16 @@ export default function Footer() {
           <div>
             <h3 className="text-white text-lg font-semibold mb-4">Our Courses</h3>
             <ul className="space-y-2">
+              {courses.map((course) => (
+                <li key={course.slug}>
+                  <Link href={`/courses/${course.slug}`} className="hover:text-white transition-colors">
+                    {course.title}
+                  </Link>
+                </li>
+              ))}
               <li>
-                <Link href="/courses/it" className="hover:text-white transition-colors">
-                  IT & Computing
-                </Link>
-              </li>
-              <li>
-                <Link href="/courses/electrical" className="hover:text-white transition-colors">
-                  Electrical
-                </Link>
-              </li>
-              <li>
-                <Link href="/courses/mechanical" className="hover:text-white transition-colors">
-                  Mechanical
-                </Link>
-              </li>
-              <li>
-                <Link href="/courses/hospitality" className="hover:text-white transition-colors">
-                  Hospitality
-                </Link>
-              </li>
-              <li>
-                <Link href="/courses/agriculture" className="hover:text-white transition-colors">
-                  Agriculture
+                <Link href="/courses" className="hover:text-white font-semibold transition-colors">
+                  View Courses &rarr;
                 </Link>
               </li>
             </ul>
@@ -103,16 +131,21 @@ export default function Footer() {
                 <span>
                   World Link Technical Training Institute
                   <br />
-                  Kathmandu, Nepal
+                  {contact.address.split("\n").map((line, i) => (
+                    <span key={i}>
+                      {line}
+                      <br />
+                    </span>
+                  ))}
                 </span>
               </li>
               <li className="flex items-center gap-3">
                 <Phone className="h-5 w-5 text-blue-500 flex-shrink-0" />
-                <span>01-5970000</span>
+                <span>{contact.phone}</span>
               </li>
               <li className="flex items-center gap-3">
                 <Mail className="h-5 w-5 text-blue-500 flex-shrink-0" />
-                <span>info@worldlinktraining.edu.np</span>
+                <span>{contact.email}</span>
               </li>
             </ul>
           </div>

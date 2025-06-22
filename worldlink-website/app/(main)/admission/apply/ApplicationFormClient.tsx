@@ -20,6 +20,7 @@ import { cn } from "@/lib/utils"
 import PageHeader from "@/components/page-header"
 import { courses } from "@/lib/data"
 import { getSupabaseBrowserClient } from "@/lib/supabase"
+import { toast } from "sonner"
 
 const formSchema = z.object({
   fullName: z.string().min(2, {
@@ -105,13 +106,16 @@ export default function ApplicationForm() {
 
       if (insertError) {
         console.error("Supabase insert error:", insertError)
-        throw new Error(insertError.message || "Failed to submit application")
+        toast.error(insertError.message || "Failed to submit application")
+        return
       }
 
       // Show success message
       setIsSubmitted(true)
+      toast.success("Your application has been submitted successfully!")
     } catch (err: any) {
       console.error("Application submission error:", err)
+      toast.error(err?.message || "An error occurred while submitting your application. Please try again.")
       setError(err?.message || "An error occurred while submitting your application. Please try again.")
     } finally {
       setIsLoading(false)
@@ -172,11 +176,6 @@ export default function ApplicationForm() {
           <div className="bg-white p-8 rounded-lg shadow-sm">
             <Form {...form}>
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-                {error && (
-                  <div className="bg-red-100 text-red-700 p-4 rounded-md mb-4">
-                    <p>{error}</p>
-                  </div>
-                )}
                 <div className="space-y-4">
                   <h3 className="text-lg font-semibold">Personal Information</h3>
 
@@ -342,7 +341,7 @@ export default function ApplicationForm() {
                           </FormControl>
                           <SelectContent>
                             {courses.map((course) => (
-                              <SelectItem key={course.id} value={course.id}>
+                              <SelectItem key={course.id} value={String(course.id)}>
                                 {course.title}
                               </SelectItem>
                             ))}

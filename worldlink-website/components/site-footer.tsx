@@ -1,8 +1,65 @@
+'use client'
+
 import Link from "next/link"
 import Image from "next/image"
 import { Facebook, Instagram, Twitter, Youtube, Mail, Phone, MapPin } from "lucide-react"
+import React, { useEffect, useState } from "react"
 
 export default function SiteFooter() {
+  const [courses, setCourses] = useState<{ title: string; slug: string }[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [settings, setSettings] = useState<{
+    address?: string;
+    contact_phone?: string;
+    contact_email?: string;
+  }>({})
+  const [settingsLoading, setSettingsLoading] = useState(true)
+  const [settingsError, setSettingsError] = useState<string | null>(null)
+
+  useEffect(() => {
+    const fetchCourses = async () => {
+      try {
+        setLoading(true)
+        setError(null)
+        const res = await fetch("/api/courses")
+        if (!res.ok) {
+          const errorData = await res.json()
+          throw new Error(errorData.error || "Failed to fetch courses")
+        }
+        const data = await res.json()
+        // Only keep title and slug, and limit to 5
+        setCourses(data.slice(0, 5).map((c: any) => ({ title: c.title, slug: c.slug })))
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Failed to fetch courses")
+      } finally {
+        setLoading(false)
+      }
+    }
+    fetchCourses()
+  }, [])
+
+  useEffect(() => {
+    const fetchSettings = async () => {
+      try {
+        setSettingsLoading(true)
+        setSettingsError(null)
+        const res = await fetch("/api/settings")
+        if (!res.ok) {
+          const errorData = await res.json()
+          throw new Error(errorData.error || "Failed to fetch settings")
+        }
+        const data = await res.json()
+        setSettings(data)
+      } catch (err) {
+        setSettingsError(err instanceof Error ? err.message : "Failed to fetch settings")
+      } finally {
+        setSettingsLoading(false)
+      }
+    }
+    fetchSettings()
+  }, [])
+
   return (
     <footer className="bg-slate-900 text-white">
       <div className="container mx-auto px-4 py-12">
@@ -83,34 +140,15 @@ export default function SiteFooter() {
           <div>
             <h3 className="text-lg font-semibold mb-4">Our Courses</h3>
             <ul className="space-y-2">
-              <li>
-                <Link href="/courses/web-development" className="text-slate-300 hover:text-white transition-colors">
-                  Web Development
-                </Link>
-              </li>
-              <li>
-                <Link
-                  href="/courses/mobile-app-development"
-                  className="text-slate-300 hover:text-white transition-colors"
-                >
-                  Mobile App Development
-                </Link>
-              </li>
-              <li>
-                <Link href="/courses/graphic-design" className="text-slate-300 hover:text-white transition-colors">
-                  Graphic Design
-                </Link>
-              </li>
-              <li>
-                <Link href="/courses/digital-marketing" className="text-slate-300 hover:text-white transition-colors">
-                  Digital Marketing
-                </Link>
-              </li>
-              <li>
-                <Link href="/courses/networking" className="text-slate-300 hover:text-white transition-colors">
-                  Networking
-                </Link>
-              </li>
+              {loading && <li className="text-slate-400">Loading...</li>}
+              {error && <li className="text-red-400">{error}</li>}
+              {!loading && !error && courses.map((course) => (
+                <li key={course.slug}>
+                  <Link href={`/courses/${course.slug}`} className="text-slate-300 hover:text-white transition-colors">
+                    {course.title}
+                  </Link>
+                </li>
+              ))}
               <li>
                 <Link href="/courses" className="text-blue-400 hover:text-blue-300 transition-colors">
                   View All Courses
@@ -123,29 +161,29 @@ export default function SiteFooter() {
           <div>
             <h3 className="text-lg font-semibold mb-4">Contact Us</h3>
             <ul className="space-y-4">
-              <li className="flex items-start">
-                <MapPin className="h-5 w-5 text-blue-400 mr-2 mt-0.5" />
-                <span className="text-slate-300">
-                  World Link Technical Training Institute
-                  <br />
-                  Jawalakhel, Lalitpur
-                  <br />
-                  Kathmandu, Nepal
-                </span>
-              </li>
-              <li className="flex items-center">
-                <Phone className="h-5 w-5 text-blue-400 mr-2" />
-                <span className="text-slate-300">01-5970000</span>
-              </li>
-              <li className="flex items-center">
-                <Mail className="h-5 w-5 text-blue-400 mr-2" />
-                <a
-                  href="mailto:info@worldlinktraining.edu.np"
-                  className="text-slate-300 hover:text-white transition-colors"
-                >
-                  info@worldlinktraining.edu.np
-                </a>
-              </li>
+              {settingsLoading && <li className="text-slate-400">Loading...</li>}
+              {settingsError && <li className="text-red-400">{settingsError}</li>}
+              {!settingsLoading && !settingsError && (
+                <>
+                  <li className="flex items-start">
+                    <MapPin className="h-5 w-5 text-blue-400 mr-2 mt-0.5" />
+                    <span className="text-slate-300 whitespace-pre-line">{settings.address || "-"}</span>
+                  </li>
+                  <li className="flex items-center">
+                    <Phone className="h-5 w-5 text-blue-400 mr-2" />
+                    <span className="text-slate-300">{settings.contact_phone || "-"}</span>
+                  </li>
+                  <li className="flex items-center">
+                    <Mail className="h-5 w-5 text-blue-400 mr-2" />
+                    <a
+                      href={settings.contact_email ? `mailto:${settings.contact_email}` : undefined}
+                      className="text-slate-300 hover:text-white transition-colors"
+                    >
+                      {settings.contact_email || "-"}
+                    </a>
+                  </li>
+                </>
+              )}
             </ul>
           </div>
         </div>

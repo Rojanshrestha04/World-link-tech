@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useState, useEffect } from "react"
@@ -11,9 +10,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Pencil, Search, Trash2, Plus, Loader2, Upload } from "lucide-react"
+import { Pencil, Search, Trash2, Plus, Loader2, Upload, Eye } from "lucide-react"
 import { getSupabaseBrowserClient } from "@/lib/supabase"
-import { useToast } from "@/hooks/use-toast"
+import { toast } from "sonner"
 import FileUpload from "@/components/ui/file-upload"
 
 interface GalleryImage {
@@ -41,7 +40,8 @@ export default function GalleryManagementWithUpload() {
   const [submitting, setSubmitting] = useState(false)
   const [deleting, setDeleting] = useState<string | null>(null)
   const [uploadMethod, setUploadMethod] = useState<"file" | "url">("file")
-  const { toast } = useToast()
+  const [selectedImage, setSelectedImage] = useState<GalleryImage | null>(null)
+  const [isViewDialogOpen, setIsViewDialogOpen] = useState(false)
 
   // Fetch gallery images from database
   const fetchImages = async () => {
@@ -54,11 +54,7 @@ export default function GalleryManagementWithUpload() {
 
       if (error) {
         console.error('Error fetching images:', error)
-        toast({
-          title: "Error",
-          description: "Failed to fetch gallery images",
-          variant: "destructive",
-        })
+        toast.error("Failed to fetch gallery images")
         return
       }
 
@@ -69,11 +65,7 @@ export default function GalleryManagementWithUpload() {
       setCategories(uniqueCategories)
     } catch (error) {
       console.error('Error:', error)
-      toast({
-        title: "Error",
-        description: "Failed to fetch gallery images",
-        variant: "destructive",
-      })
+      toast.error("Failed to fetch gallery images")
     } finally {
       setLoading(false)
     }
@@ -82,20 +74,13 @@ export default function GalleryManagementWithUpload() {
   // Handle file upload completion
   const handleFileUpload = (file: File, url: string) => {
     setFormData(prev => ({ ...prev, image: url }))
-    toast({
-      title: "Success",
-      description: `File "${file.name}" uploaded successfully`,
-    })
+    toast.success(`File "${file.name}" uploaded successfully`)
   }
 
   // Add new image
   const addImage = async () => {
     if (!formData.title || !formData.category || !formData.image) {
-      toast({
-        title: "Error",
-        description: "Please fill in all fields",
-        variant: "destructive",
-      })
+      toast.error("Please fill in all fields")
       return
     }
 
@@ -109,11 +94,7 @@ export default function GalleryManagementWithUpload() {
 
       if (error) {
         console.error('Error adding image:', error)
-        toast({
-          title: "Error",
-          description: "Failed to add image",
-          variant: "destructive",
-        })
+        toast.error("Failed to add image")
         return
       }
 
@@ -126,17 +107,10 @@ export default function GalleryManagementWithUpload() {
       setFormData({ title: "", category: "", image: "" })
       setIsAddDialogOpen(false)
       
-      toast({
-        title: "Success",
-        description: "Image added successfully",
-      })
+      toast.success("Image added successfully")
     } catch (error) {
       console.error('Error:', error)
-      toast({
-        title: "Error",
-        description: "Failed to add image",
-        variant: "destructive",
-      })
+      toast.error("Failed to add image")
     } finally {
       setSubmitting(false)
     }
@@ -145,11 +119,7 @@ export default function GalleryManagementWithUpload() {
   // Update image
   const updateImage = async () => {
     if (!editingImage || !formData.title || !formData.category || !formData.image) {
-      toast({
-        title: "Error",
-        description: "Please fill in all fields",
-        variant: "destructive",
-      })
+      toast.error("Please fill in all fields")
       return
     }
 
@@ -163,12 +133,8 @@ export default function GalleryManagementWithUpload() {
         .select()
 
       if (error) {
-        console.error('Error updating image:', error)
-        toast({
-          title: "Error",
-          description: "Failed to update image",
-          variant: "destructive",
-        })
+        console.error('Error updating image:', JSON.stringify(error || error))
+        toast.error("Failed to update image")
         return
       }
 
@@ -184,17 +150,10 @@ export default function GalleryManagementWithUpload() {
       setEditingImage(null)
       setIsEditDialogOpen(false)
       
-      toast({
-        title: "Success",
-        description: "Image updated successfully",
-      })
+      toast.success("Image updated successfully")
     } catch (error) {
       console.error('Error:', error)
-      toast({
-        title: "Error",
-        description: "Failed to update image",
-        variant: "destructive",
-      })
+      toast.error("Failed to update image")
     } finally {
       setSubmitting(false)
     }
@@ -212,28 +171,17 @@ export default function GalleryManagementWithUpload() {
 
       if (error) {
         console.error('Error deleting image:', error)
-        toast({
-          title: "Error",
-          description: "Failed to delete image",
-          variant: "destructive",
-        })
+        toast.error("Failed to delete image")
         return
       }
 
       // Update local state
       setImages(prev => prev.filter(img => img.id !== id))
       
-      toast({
-        title: "Success",
-        description: "Image deleted successfully",
-      })
+      toast.success("Image deleted successfully")
     } catch (error) {
       console.error('Error:', error)
-      toast({
-        title: "Error",
-        description: "Failed to delete image",
-        variant: "destructive",
-      })
+      toast.error("Failed to delete image")
     } finally {
       setDeleting(null)
     }
@@ -248,6 +196,11 @@ export default function GalleryManagementWithUpload() {
       image: image.image
     })
     setIsEditDialogOpen(true)
+  }
+
+  const handleViewDetails = (image: GalleryImage) => {
+    setSelectedImage(image)
+    setIsViewDialogOpen(true)
   }
 
   useEffect(() => {
@@ -304,7 +257,7 @@ export default function GalleryManagementWithUpload() {
               Add Image
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-2xl">
+          <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Add New Image</DialogTitle>
             </DialogHeader>
@@ -320,12 +273,30 @@ export default function GalleryManagementWithUpload() {
               </div>
               <div>
                 <Label htmlFor="category">Category</Label>
-                <Input
-                  id="category"
-                  value={formData.category}
-                  onChange={(e) => setFormData(prev => ({ ...prev, category: e.target.value }))}
-                  placeholder="Enter category"
-                />
+                {categories.length > 0 ? (
+                  <Select
+                    value={formData.category}
+                    onValueChange={(value) => setFormData(prev => ({ ...prev, category: value }))}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select category" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {categories.map((category) => (
+                        <SelectItem key={category} value={category}>
+                          {category}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                ) : (
+                  <Input
+                    id="category"
+                    value={formData.category}
+                    onChange={(e) => setFormData(prev => ({ ...prev, category: e.target.value }))}
+                    placeholder="Enter category"
+                  />
+                )}
               </div>
               
               {/* Upload Method Tabs */}
@@ -386,6 +357,104 @@ export default function GalleryManagementWithUpload() {
             </div>
           </DialogContent>
         </Dialog>
+
+        {/* Edit Image Dialog */}
+        <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+          <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Edit Image</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="edit-title">Title</Label>
+                <Input
+                  id="edit-title"
+                  value={formData.title}
+                  onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
+                  placeholder="Enter image title"
+                />
+              </div>
+              <div>
+                <Label htmlFor="edit-category">Category</Label>
+                {categories.length > 0 ? (
+                  <Select
+                    value={formData.category}
+                    onValueChange={(value) => setFormData(prev => ({ ...prev, category: value }))}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select category" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {categories.map((category) => (
+                        <SelectItem key={category} value={category}>
+                          {category}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                ) : (
+                  <Input
+                    id="edit-category"
+                    value={formData.category}
+                    onChange={(e) => setFormData(prev => ({ ...prev, category: e.target.value }))}
+                    placeholder="Enter category"
+                  />
+                )}
+              </div>
+              {/* Upload Method Tabs */}
+              <div>
+                <Label>Image Source</Label>
+                <Tabs value={uploadMethod} onValueChange={(value) => setUploadMethod(value as "file" | "url")}>
+                  <TabsList className="grid w-full grid-cols-2">
+                    <TabsTrigger value="file">Upload File</TabsTrigger>
+                    <TabsTrigger value="url">Image URL</TabsTrigger>
+                  </TabsList>
+                  <TabsContent value="file" className="mt-4">
+                    <FileUpload
+                      accept="image/*"
+                      maxSize={5}
+                      onFileUpload={handleFileUpload}
+                      uploadEndpoint="/api/upload"
+                      showPreview={true}
+                    />
+                  </TabsContent>
+                  <TabsContent value="url" className="mt-4">
+                    <Input
+                      value={formData.image}
+                      onChange={(e) => setFormData(prev => ({ ...prev, image: e.target.value }))}
+                      placeholder="Enter image URL"
+                    />
+                  </TabsContent>
+                </Tabs>
+              </div>
+              {/* Image Preview */}
+              {formData.image && (
+                <div>
+                  <Label>Preview</Label>
+                  <div className="mt-2 border rounded-lg overflow-hidden">
+                    <Image
+                      src={formData.image}
+                      alt="Preview"
+                      width={400}
+                      height={200}
+                      className="w-full h-48 object-cover"
+                    />
+                  </div>
+                </div>
+              )}
+              <Button onClick={updateImage} disabled={submitting} className="w-full">
+                {submitting ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Updating...
+                  </>
+                ) : (
+                  "Update Image"
+                )}
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
 
       {/* Rest of the component remains the same... */}
@@ -439,12 +508,50 @@ export default function GalleryManagementWithUpload() {
                       <Trash2 className="h-3 w-3" />
                     )}
                   </Button>
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    onClick={() => handleViewDetails(image)}
+                  >
+                    <Eye className="h-3 w-3" />
+                  </Button>
                 </div>
               </div>
             </div>
           ))}
         </div>
       )}
+
+      {/* View Image Dialog */}
+      <Dialog open={isViewDialogOpen} onOpenChange={setIsViewDialogOpen}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Image Details</DialogTitle>
+          </DialogHeader>
+          {selectedImage && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-sm font-medium">Title</label>
+                  <p className="text-sm text-muted-foreground">{selectedImage.title}</p>
+                </div>
+                <div>
+                  <label className="text-sm font-medium">Category</label>
+                  <p className="text-sm text-muted-foreground">{selectedImage.category}</p>
+                </div>
+              </div>
+              <div>
+                <label className="text-sm font-medium">Image</label>
+                {selectedImage.image && <img src={selectedImage.image} alt="Gallery" className="w-80 h-48 object-cover rounded mt-2" />}
+              </div>
+              <div>
+                <label className="text-sm font-medium">Created At</label>
+                <p className="text-sm text-muted-foreground">{new Date(selectedImage.created_at).toLocaleString()}</p>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

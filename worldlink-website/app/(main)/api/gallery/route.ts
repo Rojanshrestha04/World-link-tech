@@ -48,7 +48,7 @@ export async function GET() {
     if (error) {
       console.error('Error fetching gallery:', error)
       return NextResponse.json(
-        { error: `Failed to fetch gallery from database: ${error.message}` },
+        { error: error.message ? `Failed to fetch gallery from database: ${error.message}` : 'Failed to fetch gallery from database.' },
         { status: 500 }
       )
     }

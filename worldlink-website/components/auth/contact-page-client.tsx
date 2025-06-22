@@ -14,6 +14,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import PageHeader from "@/components/page-header"
 import { getSupabaseBrowserClient } from "@/lib/supabase"
+import { toast } from "sonner"
 
 const formSchema = z.object({
   name: z.string().min(2, {
@@ -70,12 +71,17 @@ export default function ContactPageClient() {
         message: values.message,
       })
 
-      if (error) throw error
+      if (error) {
+        toast.error(error.message || "Failed to submit form")
+        throw error
+      }
 
       // Show success message
       setIsSubmitted(true)
+      toast.success("Your message has been sent successfully!")
     } catch (err) {
       console.error("Error submitting form:", err)
+      toast.error("An error occurred while submitting your message. Please try again.")
       setError("An error occurred while submitting your message. Please try again.")
     } finally {
       setIsLoading(false)
@@ -201,12 +207,6 @@ export default function ContactPageClient() {
                     Fill out the form below to get in touch with our team. We'll respond to your inquiry as soon as
                     possible.
                   </p>
-
-                  {error && (
-                    <div className="bg-red-100 text-red-700 p-4 rounded-md mb-4">
-                      <p>{error}</p>
-                    </div>
-                  )}
 
                   <Form {...form}>
                     <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">

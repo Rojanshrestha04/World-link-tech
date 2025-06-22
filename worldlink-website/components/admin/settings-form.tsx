@@ -1,5 +1,6 @@
 "use client"
 
+import { useEffect, useState } from "react"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import { z } from "zod"
@@ -7,11 +8,12 @@ import { Button } from "@/components/ui/button"
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Switch } from "@/components/ui/switch"
-import { Label } from "@/components/ui/label"
+import UserManagementTable from "@/components/admin/user-management-table"
+import { useAdminAuth } from "@/contexts/auth-context"
+import { toast } from "sonner"
+import { Pencil } from "lucide-react"
 
 const generalFormSchema = z.object({
   siteName: z.string().min(2, {
@@ -31,21 +33,20 @@ const generalFormSchema = z.object({
   }),
 })
 
-const appearanceFormSchema = z.object({
-  theme: z.string(),
-  primaryColor: z.string(),
-  logoUrl: z.string().url().optional().or(z.literal("")),
-  faviconUrl: z.string().url().optional().or(z.literal("")),
-})
-
-const notificationFormSchema = z.object({
-  emailNotifications: z.boolean(),
-  applicationAlerts: z.boolean(),
-  inquiryAlerts: z.boolean(),
-  newsletterSignups: z.boolean(),
+const passwordFormSchema = z.object({
+  newPassword: z.string().min(6, {
+    message: "Password must be at least 6 characters.",
+  }),
+  confirmPassword: z.string(),
+}).refine((data) => data.newPassword === data.confirmPassword, {
+  message: "Passwords don't match.",
+  path: ["confirmPassword"],
 })
 
 export default function SettingsForm() {
+  const { user, signOut } = useAdminAuth()
+  const [editMode, setEditMode] = useState(false)
+
   const generalForm = useForm<z.infer<typeof generalFormSchema>>({
     resolver: zodResolver(generalFormSchema),
     defaultValues: {
@@ -57,306 +58,226 @@ export default function SettingsForm() {
     },
   })
 
-  const appearanceForm = useForm<z.infer<typeof appearanceFormSchema>>({
-    resolver: zodResolver(appearanceFormSchema),
+  const passwordForm = useForm<z.infer<typeof passwordFormSchema>>({
+    resolver: zodResolver(passwordFormSchema),
     defaultValues: {
-      theme: "light",
-      primaryColor: "#1a56db",
-      logoUrl: "",
-      faviconUrl: "",
+      newPassword: "",
+      confirmPassword: "",
     },
   })
 
-  const notificationForm = useForm<z.infer<typeof notificationFormSchema>>({
-    resolver: zodResolver(notificationFormSchema),
-    defaultValues: {
-      emailNotifications: true,
-      applicationAlerts: true,
-      inquiryAlerts: true,
-      newsletterSignups: false,
-    },
-  })
+  // Fetch settings from DB on mount
+  useEffect(() => {
+    const fetchSettings = async () => {
+      const res = await fetch("/api/settings")
+      if (!res.ok) return
+      const data = await res.json()
+      generalForm.reset({
+        siteName: data.site_name,
+        siteDescription: data.site_description,
+        contactEmail: data.contact_email,
+        contactPhone: data.contact_phone,
+        address: data.address,
+      })
+    }
+    fetchSettings()
+  }, [generalForm])
 
-  function onGeneralSubmit(values: z.infer<typeof generalFormSchema>) {
-    console.log(values)
-    // In a real application, you would save these settings to your backend
+  // Update settings in DB on submit
+  async function onGeneralSubmit(values: z.infer<typeof generalFormSchema>) {
+    const res = await fetch("/api/settings", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        site_name: values.siteName,
+        site_description: values.siteDescription,
+        contact_email: values.contactEmail,
+        contact_phone: values.contactPhone,
+        address: values.address,
+      }),
+    })
+    if (res.ok) {
+      toast.success("Your general settings have been updated.")
+    } else {
+      toast.error("Failed to update settings.")
+    }
   }
 
-  function onAppearanceSubmit(values: z.infer<typeof appearanceFormSchema>) {
-    console.log(values)
-    // In a real application, you would save these settings to your backend
-  }
+  async function onPasswordSubmit(values: z.infer<typeof passwordFormSchema>) {
+    if (!user) {
+      toast.error("No user logged in.")
+      return
+    }
 
-  function onNotificationSubmit(values: z.infer<typeof notificationFormSchema>) {
-    console.log(values)
-    // In a real application, you would save these settings to your backend
+    try {
+      const supabase = await import("@/lib/supabase").then(mod => mod.getSupabaseBrowserClient());
+      const { error } = await supabase.auth.updateUser({
+        password: values.newPassword,
+      })
+
+      if (error) {
+        throw error
+      }
+
+      toast.success("Your password has been successfully changed. Please log in again with your new password.")
+      signOut()
+    } catch (error) {
+      console.error("Error changing password:", error)
+      toast.error(`Failed to change password: ${(error as Error).message}`)
+    } finally {
+      passwordForm.reset()
+    }
   }
 
   return (
     <Tabs defaultValue="general" className="space-y-4">
       <TabsList>
         <TabsTrigger value="general">General</TabsTrigger>
-        <TabsTrigger value="appearance">Appearance</TabsTrigger>
-        <TabsTrigger value="notifications">Notifications</TabsTrigger>
         <TabsTrigger value="users">User Management</TabsTrigger>
+        <TabsTrigger value="password">Change Password</TabsTrigger>
       </TabsList>
 
       <TabsContent value="general">
-        <Card>
+        <Card className="relative">
           <CardHeader>
             <CardTitle>General Settings</CardTitle>
             <CardDescription>Configure basic information about your website</CardDescription>
+            {!editMode && (
+              <button
+                className="absolute top-4 right-4 text-muted-foreground hover:text-primary"
+                onClick={() => setEditMode(true)}
+                aria-label="Edit Settings"
+              >
+                <Pencil className="w-5 h-5" />
+              </button>
+            )}
           </CardHeader>
           <CardContent className="space-y-6">
-            <Form {...generalForm}>
-              <form onSubmit={generalForm.handleSubmit(onGeneralSubmit)} className="space-y-6">
-                <FormField
-                  control={generalForm.control}
-                  name="siteName"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Site Name</FormLabel>
-                      <FormControl>
-                        <Input {...field} />
-                      </FormControl>
-                      <FormDescription>
-                        The name of your website as it appears in the browser title and headers
-                      </FormDescription>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={generalForm.control}
-                  name="siteDescription"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Site Description</FormLabel>
-                      <FormControl>
-                        <Textarea {...field} />
-                      </FormControl>
-                      <FormDescription>A brief description of your website for SEO purposes</FormDescription>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <FormField
-                    control={generalForm.control}
-                    name="contactEmail"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Contact Email</FormLabel>
-                        <FormControl>
-                          <Input {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={generalForm.control}
-                    name="contactPhone"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Contact Phone</FormLabel>
-                        <FormControl>
-                          <Input {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+            {!editMode ? (
+              <div className="space-y-4">
+                <div>
+                  <div className="font-semibold">Site Name</div>
+                  <div className="text-muted-foreground">{generalForm.getValues("siteName")}</div>
                 </div>
-
-                <FormField
-                  control={generalForm.control}
-                  name="address"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Address</FormLabel>
-                      <FormControl>
-                        <Textarea {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <Button type="submit">Save Changes</Button>
-              </form>
-            </Form>
-          </CardContent>
-        </Card>
-      </TabsContent>
-
-      <TabsContent value="appearance">
-        <Card>
-          <CardHeader>
-            <CardTitle>Appearance Settings</CardTitle>
-            <CardDescription>Customize the look and feel of your website</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <Form {...appearanceForm}>
-              <form onSubmit={appearanceForm.handleSubmit(onAppearanceSubmit)} className="space-y-6">
-                <FormField
-                  control={appearanceForm.control}
-                  name="theme"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Theme</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select a theme" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value="light">Light</SelectItem>
-                          <SelectItem value="dark">Dark</SelectItem>
-                          <SelectItem value="system">System</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <FormDescription>Choose the default theme for your website</FormDescription>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={appearanceForm.control}
-                  name="primaryColor"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Primary Color</FormLabel>
-                      <div className="flex items-center gap-2">
+                <div>
+                  <div className="font-semibold">Site Description</div>
+                  <div className="text-muted-foreground">{generalForm.getValues("siteDescription")}</div>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <div className="font-semibold">Contact Email</div>
+                    <div className="text-muted-foreground">{generalForm.getValues("contactEmail")}</div>
+                  </div>
+                  <div>
+                    <div className="font-semibold">Contact Phone</div>
+                    <div className="text-muted-foreground">{generalForm.getValues("contactPhone")}</div>
+                  </div>
+                </div>
+                <div>
+                  <div className="font-semibold">Address</div>
+                  <div className="text-muted-foreground">{generalForm.getValues("address")}</div>
+                </div>
+                <Button
+                  variant="outline"
+                  className="mt-4"
+                  onClick={() => setEditMode(true)}
+                >
+                  Edit
+                </Button>
+              </div>
+            ) : (
+              <Form {...generalForm}>
+                <form
+                  onSubmit={generalForm.handleSubmit(async (values) => {
+                    await onGeneralSubmit(values)
+                    setEditMode(false)
+                  })}
+                  className="space-y-6"
+                >
+                  <FormField
+                    control={generalForm.control}
+                    name="siteName"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Site Name</FormLabel>
                         <FormControl>
                           <Input {...field} />
                         </FormControl>
-                        <div className="w-10 h-10 rounded-md border" style={{ backgroundColor: field.value }} />
-                      </div>
-                      <FormDescription>The main color used throughout the website (hex code)</FormDescription>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={appearanceForm.control}
-                  name="logoUrl"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Logo URL</FormLabel>
-                      <FormControl>
-                        <Input {...field} />
-                      </FormControl>
-                      <FormDescription>URL to your website logo (leave empty to use the default)</FormDescription>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={appearanceForm.control}
-                  name="faviconUrl"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Favicon URL</FormLabel>
-                      <FormControl>
-                        <Input {...field} />
-                      </FormControl>
-                      <FormDescription>URL to your website favicon (leave empty to use the default)</FormDescription>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <Button type="submit">Save Changes</Button>
-              </form>
-            </Form>
-          </CardContent>
-        </Card>
-      </TabsContent>
-
-      <TabsContent value="notifications">
-        <Card>
-          <CardHeader>
-            <CardTitle>Notification Settings</CardTitle>
-            <CardDescription>Configure email notifications and alerts</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <Form {...notificationForm}>
-              <form onSubmit={notificationForm.handleSubmit(onNotificationSubmit)} className="space-y-6">
-                <FormField
-                  control={notificationForm.control}
-                  name="emailNotifications"
-                  render={({ field }) => (
-                    <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
-                      <div className="space-y-0.5">
-                        <FormLabel className="text-base">Email Notifications</FormLabel>
-                        <FormDescription>Enable or disable all email notifications</FormDescription>
-                      </div>
-                      <FormControl>
-                        <Switch checked={field.value} onCheckedChange={field.onChange} />
-                      </FormControl>
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={notificationForm.control}
-                  name="applicationAlerts"
-                  render={({ field }) => (
-                    <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
-                      <div className="space-y-0.5">
-                        <FormLabel className="text-base">Application Alerts</FormLabel>
-                        <FormDescription>Receive notifications when new applications are submitted</FormDescription>
-                      </div>
-                      <FormControl>
-                        <Switch checked={field.value} onCheckedChange={field.onChange} />
-                      </FormControl>
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={notificationForm.control}
-                  name="inquiryAlerts"
-                  render={({ field }) => (
-                    <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
-                      <div className="space-y-0.5">
-                        <FormLabel className="text-base">Inquiry Alerts</FormLabel>
-                        <FormDescription>Receive notifications when new inquiries are submitted</FormDescription>
-                      </div>
-                      <FormControl>
-                        <Switch checked={field.value} onCheckedChange={field.onChange} />
-                      </FormControl>
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={notificationForm.control}
-                  name="newsletterSignups"
-                  render={({ field }) => (
-                    <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
-                      <div className="space-y-0.5">
-                        <FormLabel className="text-base">Newsletter Signups</FormLabel>
-                        <FormDescription>Receive notifications when users subscribe to the newsletter</FormDescription>
-                      </div>
-                      <FormControl>
-                        <Switch checked={field.value} onCheckedChange={field.onChange} />
-                      </FormControl>
-                    </FormItem>
-                  )}
-                />
-
-                <Button type="submit">Save Changes</Button>
-              </form>
-            </Form>
+                        <FormDescription>
+                          The name of your website as it appears in the browser title and headers
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={generalForm.control}
+                    name="siteDescription"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Site Description</FormLabel>
+                        <FormControl>
+                          <Textarea {...field} />
+                        </FormControl>
+                        <FormDescription>A brief description of your website for SEO purposes</FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <FormField
+                      control={generalForm.control}
+                      name="contactEmail"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Contact Email</FormLabel>
+                          <FormControl>
+                            <Input {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={generalForm.control}
+                      name="contactPhone"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Contact Phone</FormLabel>
+                          <FormControl>
+                            <Input {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                  <FormField
+                    control={generalForm.control}
+                    name="address"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Address</FormLabel>
+                        <FormControl>
+                          <Textarea {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <div className="flex gap-2 mt-4">
+                    <Button type="submit">Save Changes</Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => setEditMode(false)}
+                    >
+                      Cancel
+                    </Button>
+                  </div>
+                </form>
+              </Form>
+            )}
           </CardContent>
         </Card>
       </TabsContent>
@@ -368,9 +289,54 @@ export default function SettingsForm() {
             <CardDescription>Manage admin users and permissions</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="h-[400px] flex items-center justify-center border rounded-md">
-              <p className="text-muted-foreground">User management interface will appear here</p>
-            </div>
+            <UserManagementTable />
+          </CardContent>
+        </Card>
+      </TabsContent>
+
+      <TabsContent value="password">
+        <Card>
+          <CardHeader>
+            <CardTitle>Change Password</CardTitle>
+            <CardDescription>Update your account password</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <Form {...passwordForm}>
+              <form onSubmit={passwordForm.handleSubmit(onPasswordSubmit)} className="space-y-6">
+                <FormField
+                  control={passwordForm.control}
+                  name="newPassword"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>New Password</FormLabel>
+                      <FormControl>
+                        <Input type="password" {...field} />
+                      </FormControl>
+                      <FormDescription>
+                        Enter your new password. It should be at least 6 characters long.
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={passwordForm.control}
+                  name="confirmPassword"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Confirm New Password</FormLabel>
+                      <FormControl>
+                        <Input type="password" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <Button type="submit">Update Password</Button>
+              </form>
+            </Form>
           </CardContent>
         </Card>
       </TabsContent>

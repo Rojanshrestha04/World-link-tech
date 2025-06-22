@@ -37,7 +37,7 @@ export async function GET() {
 
     if (error) {
       console.error('Error fetching curriculums:', error)
-      return NextResponse.json({ error: `Failed to fetch curriculums: ${error.message}` }, { status: 500 })
+      return NextResponse.json({ error: error.message ? `Failed to fetch curriculums: ${error.message}` : 'Failed to fetch curriculums.' }, { status: 500 })
     }
 
     if (!curriculums || curriculums.length === 0) {

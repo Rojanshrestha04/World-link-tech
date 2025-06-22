@@ -23,10 +23,16 @@ export default function NewsPage() {
 
   // Map categories to more user-friendly names (adjust as per your actual Supabase categories)
   const categoryMap: Record<string, string> = {
-    "Course Updates": "news",
-    "Announcements": "notice",
-    "Events": "events",
-    // Add other categories from your Supabase 'news_articles' table as needed
+    "news": "News",
+    "notices": "Notices",
+    "events": "Events"
+  }
+
+  // Reverse mapping for filtering
+  const reverseCategoryMap: Record<string, string> = {
+    "News": "news",
+    "Notices": "notices",
+    "Events": "events"
   }
 
   // Fetch news data
@@ -86,10 +92,7 @@ export default function NewsPage() {
     
     // Apply category filter
     if (filter !== "all") {
-      result = result.filter(item => {
-        const mappedCategory = categoryMap[item.category] || "other"
-        return mappedCategory === filter
-      })
+      result = result.filter(item => item.category.toLowerCase() === filter.toLowerCase())
     }
     
     setFilteredNews(result)
@@ -161,10 +164,10 @@ export default function NewsPage() {
                 {Object.keys(categoryMap).map((categoryKey) => (
                   <button
                     key={categoryKey}
-                    onClick={() => setFilter(categoryMap[categoryKey])}
+                    onClick={() => setFilter(categoryKey)}
                     className={cn(
                       "px-4 py-2 rounded-full text-sm font-medium transition-colors",
-                      filter === categoryMap[categoryKey]
+                      filter === categoryKey
                         ? "bg-blue-600 text-white"
                         : "bg-slate-100 text-slate-800 hover:bg-slate-200"
                     )}
@@ -202,7 +205,7 @@ export default function NewsPage() {
               <div className="grid md:grid-cols-2 gap-8 items-center">
                 <div className="relative h-[400px] rounded-lg overflow-hidden">
                   <Image
-                    src={latestNewsArticle.image_url || "/placeholder.svg"}
+                    src={latestNewsArticle.image || "/placeholder.svg"}
                     alt={latestNewsArticle.title}
                     fill
                     className="object-cover"
@@ -249,7 +252,7 @@ export default function NewsPage() {
                   >
                     <div className="relative h-48">
                       <Image
-                        src={article.image_url || "/placeholder.svg"}
+                        src={article.image || "/placeholder.svg"}
                         alt={article.title}
                         fill
                         className="object-cover"

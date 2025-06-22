@@ -35,7 +35,7 @@ export async function GET(
 
     if (error) {
       console.error('Error fetching news:', error)
-      return NextResponse.json({ error: 'Failed to fetch news' }, { status: 500 })
+      return NextResponse.json({ error: error.message || 'Failed to fetch news' }, { status: 500 })
     }
 
     if (!news) {
@@ -45,6 +45,6 @@ export async function GET(
     return NextResponse.json(news)
   } catch (error) {
     console.error('Error in news API:', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    return NextResponse.json({ error: error instanceof Error ? error.message : 'An unexpected error occurred' }, { status: 500 })
   }
 } 

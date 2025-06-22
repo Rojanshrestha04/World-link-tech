@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useState, useEffect } from "react"
@@ -30,7 +29,7 @@ import {
   User
 } from "lucide-react"
 import { getSupabaseBrowserClient } from "@/lib/supabase"
-import { useToast } from "@/hooks/use-toast"
+import { toast } from "sonner"
 
 interface Inquiry {
   id: string
@@ -58,7 +57,6 @@ export default function InquiryManagementTable() {
   const [updatingStatus, setUpdatingStatus] = useState<string | null>(null)
   const [selectedInquiry, setSelectedInquiry] = useState<Inquiry | null>(null)
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false)
-  const { toast } = useToast()
 
   // Fetch inquiries from database
   const fetchInquiries = async () => {
@@ -71,11 +69,7 @@ export default function InquiryManagementTable() {
 
       if (error) {
         console.error('Error fetching inquiries:', error)
-        toast({
-          title: "Error",
-          description: "Failed to fetch inquiries",
-          variant: "destructive",
-        })
+        toast.error("Failed to fetch inquiries")
         return
       }
 
@@ -86,11 +80,7 @@ export default function InquiryManagementTable() {
       setInquiryTypes(uniqueTypes)
     } catch (error) {
       console.error('Error:', error)
-      toast({
-        title: "Error",
-        description: "Failed to fetch inquiries",
-        variant: "destructive",
-      })
+      toast.error("Failed to fetch inquiries")
     } finally {
       setLoading(false)
     }
@@ -111,11 +101,7 @@ export default function InquiryManagementTable() {
 
       if (error) {
         console.error('Error updating status:', error)
-        toast({
-          title: "Error",
-          description: "Failed to update inquiry status",
-          variant: "destructive",
-        })
+        toast.error("Failed to update inquiry status")
         return
       }
 
@@ -128,17 +114,10 @@ export default function InquiryManagementTable() {
         )
       )
 
-      toast({
-        title: "Success",
-        description: `Inquiry status updated to ${newStatus}`,
-      })
+      toast.success("Inquiry status updated successfully.")
     } catch (error) {
       console.error('Error:', error)
-      toast({
-        title: "Error",
-        description: "Failed to update inquiry status",
-        variant: "destructive",
-      })
+      toast.error("Failed to update inquiry status")
     } finally {
       setUpdatingStatus(null)
     }
@@ -159,11 +138,7 @@ export default function InquiryManagementTable() {
 
       if (error) {
         console.error('Error updating priority:', error)
-        toast({
-          title: "Error",
-          description: "Failed to update inquiry priority",
-          variant: "destructive",
-        })
+        toast.error("Failed to update inquiry priority")
         return
       }
 
@@ -176,17 +151,10 @@ export default function InquiryManagementTable() {
         )
       )
 
-      toast({
-        title: "Success",
-        description: `Inquiry priority updated to ${newPriority}`,
-      })
+      toast.success(`Inquiry priority updated to ${newPriority}`)
     } catch (error) {
       console.error('Error:', error)
-      toast({
-        title: "Error",
-        description: "Failed to update inquiry priority",
-        variant: "destructive",
-      })
+      toast.error("Failed to update inquiry priority")
     } finally {
       setUpdatingStatus(null)
     }
@@ -203,28 +171,17 @@ export default function InquiryManagementTable() {
 
       if (error) {
         console.error('Error deleting inquiry:', error)
-        toast({
-          title: "Error",
-          description: "Failed to delete inquiry",
-          variant: "destructive",
-        })
+        toast.error("Failed to delete inquiry")
         return
       }
 
       // Update local state
       setInquiries(prev => prev.filter(inquiry => inquiry.id !== id))
       
-      toast({
-        title: "Success",
-        description: "Inquiry deleted successfully",
-      })
+      toast.success("Inquiry deleted successfully")
     } catch (error) {
       console.error('Error:', error)
-      toast({
-        title: "Error",
-        description: "Failed to delete inquiry",
-        variant: "destructive",
-      })
+      toast.error("Failed to delete inquiry")
     }
   }
 

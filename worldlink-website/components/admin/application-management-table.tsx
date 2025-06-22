@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useState, useEffect } from "react"
@@ -17,7 +16,7 @@ import {
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { CheckCircle, EyeIcon, MoreHorizontal, Search, XCircle, Loader2 } from "lucide-react"
 import { getSupabaseBrowserClient } from "@/lib/supabase"
-import { useToast } from "@/hooks/use-toast"
+import { toast } from "sonner"
 
 interface ApplicationSubmission {
   id: string
@@ -42,7 +41,6 @@ export default function ApplicationManagementTable() {
   const [searchQuery, setSearchQuery] = useState("")
   const [statusFilter, setStatusFilter] = useState("all")
   const [updatingStatus, setUpdatingStatus] = useState<string | null>(null)
-  const { toast } = useToast()
 
   // Fetch applications from database
   const fetchApplications = async () => {
@@ -55,22 +53,14 @@ export default function ApplicationManagementTable() {
 
       if (error) {
         console.error('Error fetching applications:', error)
-        toast({
-          title: "Error",
-          description: "Failed to fetch applications",
-          variant: "destructive",
-        })
+        toast.error("Failed to fetch applications")
         return
       }
 
       setApplications(data || [])
     } catch (error) {
       console.error('Error:', error)
-      toast({
-        title: "Error",
-        description: "Failed to fetch applications",
-        variant: "destructive",
-      })
+      toast.error("Failed to fetch applications")
     } finally {
       setLoading(false)
     }
@@ -88,11 +78,7 @@ export default function ApplicationManagementTable() {
 
       if (error) {
         console.error('Error updating status:', error)
-        toast({
-          title: "Error",
-          description: "Failed to update application status",
-          variant: "destructive",
-        })
+        toast.error("Failed to update application status")
         return
       }
 
@@ -103,17 +89,10 @@ export default function ApplicationManagementTable() {
         )
       )
 
-      toast({
-        title: "Success",
-        description: `Application status updated to ${newStatus}`,
-      })
+      toast.success(`Application status updated to ${newStatus}`)
     } catch (error) {
       console.error('Error:', error)
-      toast({
-        title: "Error",
-        description: "Failed to update application status",
-        variant: "destructive",
-      })
+      toast.error("Failed to update application status")
     } finally {
       setUpdatingStatus(null)
     }

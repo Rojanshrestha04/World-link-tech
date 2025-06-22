@@ -24,8 +24,11 @@ CREATE TABLE public.users (
     id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
     email VARCHAR(255) NOT NULL UNIQUE
         CHECK (email ~* '^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$'),
+    full_name VARCHAR(255),
     role VARCHAR(50) NOT NULL DEFAULT 'user'
         CHECK (role IN ('admin', 'user')),
+    is_active BOOLEAN NOT NULL DEFAULT true,
+    last_sign_in_at TIMESTAMP WITH TIME ZONE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
@@ -39,10 +42,18 @@ ON public.users
 FOR SELECT
 USING (auth.uid() = id);
 
+-- Allow users to update their own data, and admins to update any user's data
+DROP POLICY IF EXISTS "Users can update their own data" ON public.users;
 CREATE POLICY "Users can update their own data"
 ON public.users
 FOR UPDATE
-USING (auth.uid() = id);
+USING (
+    auth.uid() = id OR EXISTS (
+        SELECT 1
+        FROM public.users
+        WHERE id = auth.uid() AND role = 'admin'
+    )
+);
 
 -- Create index
 CREATE INDEX IF NOT EXISTS users_email_idx ON public.users(email);

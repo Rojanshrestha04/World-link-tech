@@ -17,7 +17,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { CheckCircle, EyeIcon, MoreHorizontal, Search, XCircle, Loader2, Mail, Phone, MessageSquare } from "lucide-react"
 import { getSupabaseBrowserClient } from "@/lib/supabase"
-import { useToast } from "@/hooks/use-toast"
+import { toast } from "sonner"
 
 interface ContactSubmission {
   id: string
@@ -41,7 +41,6 @@ export default function ContactSubmissionsTable() {
   const [updatingStatus, setUpdatingStatus] = useState<string | null>(null)
   const [selectedSubmission, setSelectedSubmission] = useState<ContactSubmission | null>(null)
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false)
-  const { toast } = useToast()
 
   // Fetch contact submissions from database
   const fetchSubmissions = async () => {
@@ -54,11 +53,7 @@ export default function ContactSubmissionsTable() {
 
       if (error) {
         console.error('Error fetching submissions:', error)
-        toast({
-          title: "Error",
-          description: "Failed to fetch contact submissions",
-          variant: "destructive",
-        })
+        toast.error("Failed to fetch contact submissions")
         return
       }
 
@@ -69,11 +64,7 @@ export default function ContactSubmissionsTable() {
       setInquiryTypes(uniqueTypes)
     } catch (error) {
       console.error('Error:', error)
-      toast({
-        title: "Error",
-        description: "Failed to fetch contact submissions",
-        variant: "destructive",
-      })
+      toast.error("Failed to fetch contact submissions")
     } finally {
       setLoading(false)
     }
@@ -91,11 +82,7 @@ export default function ContactSubmissionsTable() {
 
       if (error) {
         console.error('Error updating status:', error)
-        toast({
-          title: "Error",
-          description: "Failed to update submission status",
-          variant: "destructive",
-        })
+        toast.error("Failed to update submission status")
         return
       }
 
@@ -106,17 +93,10 @@ export default function ContactSubmissionsTable() {
         )
       )
 
-      toast({
-        title: "Success",
-        description: `Submission status updated to ${newStatus}`,
-      })
+      toast.success(`Submission status updated to ${newStatus}`)
     } catch (error) {
       console.error('Error:', error)
-      toast({
-        title: "Error",
-        description: "Failed to update submission status",
-        variant: "destructive",
-      })
+      toast.error("Failed to update submission status")
     } finally {
       setUpdatingStatus(null)
     }
@@ -133,28 +113,17 @@ export default function ContactSubmissionsTable() {
 
       if (error) {
         console.error('Error deleting submission:', error)
-        toast({
-          title: "Error",
-          description: "Failed to delete submission",
-          variant: "destructive",
-        })
+        toast.error("Failed to delete submission")
         return
       }
 
       // Update local state
       setSubmissions(prev => prev.filter(sub => sub.id !== id))
       
-      toast({
-        title: "Success",
-        description: "Submission deleted successfully",
-      })
+      toast.success("Contact submission deleted successfully.")
     } catch (error) {
       console.error('Error:', error)
-      toast({
-        title: "Error",
-        description: "Failed to delete submission",
-        variant: "destructive",
-      })
+      toast.error("Failed to delete submission")
     }
   }
 

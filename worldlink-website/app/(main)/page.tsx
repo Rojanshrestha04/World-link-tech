@@ -7,11 +7,12 @@ import { GraduationCap, BookOpen, Users, Award, FileText, ArrowRight } from "luc
 import { Course } from "@/lib/types"
 import CourseCard from "@/components/course-card"
 import TestimonialCard from "@/components/testimonial-card"
+import { testimonials } from "@/lib/data" // Import static testimonials
 
 export default function HomePage() {
   const [featuredCourses, setFeaturedCourses] = useState<Course[]>([])
   const [popularCourses, setPopularCourses] = useState<Course[]>([])
-  const [testimonials, setTestimonials] = useState([])
+  // Remove testimonials from state since we're using static data
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -39,14 +40,14 @@ export default function HomePage() {
         const popularData = await popularRes.json()
         setPopularCourses(popularData)
 
-        // Fetch testimonials
-        const testimonialsRes = await fetch('/api/testimonials')
-        if (!testimonialsRes.ok) {
-          const errorData = await testimonialsRes.json()
-          throw new Error(errorData.error || 'Failed to fetch testimonials')
-        }
-        const testimonialsData = await testimonialsRes.json()
-        setTestimonials(testimonialsData)
+        // Remove testimonials fetch - now using static data
+        // const testimonialsRes = await fetch('/api/testimonials')
+        // if (!testimonialsRes.ok) {
+        //   const errorData = await testimonialsRes.json()
+        //   throw new Error(errorData.error || 'Failed to fetch testimonials')
+        // }
+        // const testimonialsData = await testimonialsRes.json()
+        // setTestimonials(testimonialsData)
       } catch (error) {
         console.error('Error fetching data:', error)
         setError(error instanceof Error ? error.message : 'Failed to fetch data')
@@ -235,7 +236,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Testimonials */}
+      {/* Testimonials - Now using static data */}
       <section className="py-16">
         <div className="container mx-auto px-4">
           <div className="text-center mb-12">

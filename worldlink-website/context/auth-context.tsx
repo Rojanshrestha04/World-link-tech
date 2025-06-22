@@ -6,14 +6,15 @@ import { createContext, useContext, useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { getSupabaseBrowserClient } from "@/lib/supabase"
 import type { User, Session } from "@supabase/supabase-js"
+import { toast } from "sonner"
 
 interface AuthContextType {
   user: User | null
   session: Session | null
   isLoading: boolean
-signIn: (email: string, password: string) => Promise<{ error: Error | null; success: boolean }>
-signUp: (email: string, password: string, fullName: string) => Promise<{ error: Error | null; success: boolean }>
-signOut: () => Promise<void>
+  signIn: (email: string, password: string) => Promise<{ error: Error | null; success: boolean }>
+  signUp: (email: string, password: string, fullName: string) => Promise<{ error: Error | null; success: boolean }>
+  signOut: () => Promise<void>
   isAdmin: boolean
 }
 
@@ -108,6 +109,8 @@ export function UserAuthProvider({ children }: { children: React.ReactNode }) {
         },
       })
 
+      console.log("auth.signUp error:", error, "data:", data);
+
       if (error) {
         return {
           error,
@@ -123,6 +126,8 @@ export function UserAuthProvider({ children }: { children: React.ReactNode }) {
           full_name: fullName,
           role: "user",
         })
+
+        console.log("Insert profile error:", profileError);
 
         if (profileError) {
           return {
@@ -147,8 +152,10 @@ export function UserAuthProvider({ children }: { children: React.ReactNode }) {
   const signOut = async () => {
     const { error } = await supabase.auth.signOut()
     if (error) {
+      toast.error(error.message || "Logout failed")
       throw error
     }
+    toast.success("Logged out successfully!")
     router.push("/")
     router.refresh()
   }
@@ -172,4 +179,4 @@ export function useUserAuth() {
     throw new Error("useUserAuth must be used within a UserAuthProvider")
   }
   return context
-}
+} 

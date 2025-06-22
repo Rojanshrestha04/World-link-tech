@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { AlertCircle, CheckCircle, Loader2 } from "lucide-react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { toast } from "sonner"
 
 const formSchema = z.object({
   fullName: z.string().min(2, {
@@ -62,13 +63,16 @@ export default function CreateAdminPage() {
 
       if (!response.ok) {
         const data = await response.json()
+        toast.error(data.error || "Failed to create admin user")
         throw new Error(data.error || "Failed to create admin user")
       }
 
       const data = await response.json()
       setSuccess("Admin user created successfully!")
+      toast.success("Admin user created successfully!")
       form.reset()
     } catch (err) {
+      toast.error(err instanceof Error ? err.message : "An unexpected error occurred")
       setError(err instanceof Error ? err.message : "An unexpected error occurred")
     } finally {
       setIsLoading(false)
@@ -88,20 +92,6 @@ export default function CreateAdminPage() {
           <CardContent>
             <Form {...form}>
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-                {error && (
-                  <Alert variant="destructive">
-                    <AlertCircle className="h-4 w-4" />
-                    <AlertDescription>{error}</AlertDescription>
-                  </Alert>
-                )}
-
-                {success && (
-                  <Alert className="bg-green-50 text-green-800 border-green-200">
-                    <CheckCircle className="h-4 w-4 text-green-600" />
-                    <AlertDescription>{success}</AlertDescription>
-                  </Alert>
-                )}
-
                 <FormField
                   control={form.control}
                   name="fullName"

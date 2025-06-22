@@ -9,6 +9,8 @@ CREATE TABLE resources (
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
+ALTER TABLE resources
+ALTER COLUMN date SET DEFAULT now();
 
 -- Create publications table (child of resources)
 CREATE TABLE publications (

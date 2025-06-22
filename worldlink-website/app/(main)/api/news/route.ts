@@ -48,7 +48,7 @@ export async function GET() {
     if (error) {
       console.error('Error fetching news:', error)
       return NextResponse.json(
-        { error: `Failed to fetch news from database: ${error.message}` },
+        { error: error.message ? `Failed to fetch news from database: ${error.message}` : 'Failed to fetch news from database.' },
         { status: 500 }
       )
     }

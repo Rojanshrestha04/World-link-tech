@@ -14,6 +14,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import PageHeader from "@/components/page-header"
 import { getSupabaseBrowserClient } from "@/lib/supabase"
+import { toast } from "sonner"
 
 const formSchema = z.object({
   name: z.string().min(2, {
@@ -75,13 +76,16 @@ export default function ContactPageClient() {
 
       if (insertError) {
         console.error("Supabase insert error:", insertError)
+        toast.error(insertError.message || "Failed to submit form")
         throw new Error(insertError.message || "Failed to submit form")
       }
 
       // Show success message
       setIsSubmitted(true)
+      toast.success("Your message has been sent successfully!")
     } catch (err: any) {
       console.error("Form submission error:", err)
+      toast.error(err?.message || "An error occurred while submitting your message. Please try again.")
       setError(err?.message || "An error occurred while submitting your message. Please try again.")
     } finally {
       setIsLoading(false)
@@ -168,7 +172,16 @@ export default function ContactPageClient() {
               <div className="mt-8">
                 <h3 className="font-semibold text-lg mb-4">Find Us On Map</h3>
                 <div className="h-[300px] bg-slate-200 rounded-lg relative overflow-hidden">
-                  <Image src="/map-location.png" alt="Map Location" fill className="object-cover" />
+                  <iframe
+                    src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3533.2587478568707!2d85.31315137447127!3d27.67839662676947!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x39eb196ea2f39203%3A0xb3f16826d162006d!2sWorldLink%20Training%20Center!5e0!3m2!1sen!2snp!4v1750313921536!5m2!1sen!2snp"
+                    width="100%"
+                    height="100%"
+                    style={{ border: 0, width: '100%', height: '100%' }}
+                    allowFullScreen
+                    loading="lazy"
+                    referrerPolicy="no-referrer-when-downgrade"
+                    title="WorldLink Training Center Map"
+                  ></iframe>
                 </div>
               </div>
             </div>
@@ -207,12 +220,6 @@ export default function ContactPageClient() {
                     Fill out the form below to get in touch with our team. We'll respond to your inquiry as soon as
                     possible.
                   </p>
-
-                  {error && (
-                    <div className="bg-red-100 text-red-700 p-4 rounded-md mb-4">
-                      <p>{error}</p>
-                    </div>
-                  )}
 
                   <Form {...form}>
                     <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">

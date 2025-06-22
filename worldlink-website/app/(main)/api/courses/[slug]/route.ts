@@ -18,11 +18,11 @@ export async function GET(
       .select('*')
       .eq('slug', params.slug)
       .eq('is_active', true)
-      .single()
+      .maybeSingle()
 
     if (error) {
       console.error('Supabase error:', error)
-      return NextResponse.json({ error: error.message }, { status: 500 })
+      return NextResponse.json({ error: error.message || 'Failed to fetch course' }, { status: 500 })
     }
 
     if (!course) {
@@ -33,7 +33,7 @@ export async function GET(
   } catch (error) {
     console.error('Server error:', error)
     return NextResponse.json(
-      { error: 'Internal Server Error' },
+      { error: error instanceof Error ? error.message : 'An unexpected error occurred' },
       { status: 500 }
     )
   }

@@ -44,11 +44,11 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      message: "Admin user created successfully",
+      message: 'Admin user created successfully',
       userId: authData.user.id,
     })
   } catch (error) {
-    console.error("Error creating admin user:", error)
-    return NextResponse.json({ error: "Failed to create admin user" }, { status: 500 })
+    console.error('Error creating admin user:', error)
+    return NextResponse.json({ error: error instanceof Error ? error.message : 'An unexpected error occurred' }, { status: 500 })
   }
 }

@@ -37,7 +37,7 @@ export async function GET() {
 
     if (error) {
       console.error('Error fetching publications:', error)
-      return NextResponse.json({ error: `Failed to fetch publications: ${error.message}` }, { status: 500 })
+      return NextResponse.json({ error: error.message ? `Failed to fetch publications: ${error.message}` : 'Failed to fetch publications.' }, { status: 500 })
     }
 
     if (!publications || publications.length === 0) {

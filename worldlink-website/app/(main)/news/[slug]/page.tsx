@@ -89,7 +89,7 @@ export default function NewsDetailPage({ params }: { params: Promise<{ slug: str
       <div className="relative bg-blue-700 text-white">
         <div className="absolute inset-0 opacity-50">
           <Image 
-            src={news.image_url} 
+            src={news.image || "/placeholder.svg"}
             alt={news.title}
             fill
             className="object-cover"

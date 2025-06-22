@@ -36,9 +36,10 @@ import {
   Upload
 } from "lucide-react"
 import { getSupabaseBrowserClient } from "@/lib/supabase"
-import { useToast } from "@/hooks/use-toast"
+import { toast } from "sonner"
 import { format } from "date-fns"
 import { cn } from "@/lib/utils"
+import { useRouter } from "next/navigation"
 
 interface Resource {
   id: string
@@ -110,7 +111,6 @@ interface FormData {
   description: string
   file: string
   category: 'Publications' | 'Policy' | 'Reports' | 'Curriculum'
-  date: string
   
   // Publication fields
   publication_type?: 'handbook' | 'calendar' | 'newsletter' | 'guide' | 'manual'
@@ -158,7 +158,6 @@ export default function ResourcesManagement() {
     description: "",
     file: "",
     category: "Publications",
-    date: new Date().toISOString().split('T')[0],
     language: "English",
     status: "active"
   })
@@ -166,7 +165,9 @@ export default function ResourcesManagement() {
   const [deleting, setDeleting] = useState<string | null>(null)
   const [uploadedFile, setUploadedFile] = useState<File | null>(null)
   const [fileUrl, setFileUrl] = useState<string>("")
-  const { toast } = useToast()
+  const [selectedResource, setSelectedResource] = useState<ResourceWithDetails | null>(null)
+  const [isViewDialogOpen, setIsViewDialogOpen] = useState(false)
+  const router = useRouter()
 
   // Fetch resources with their details
   const fetchResources = async () => {
@@ -268,11 +269,7 @@ export default function ResourcesManagement() {
       setResources(allResources.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()))
     } catch (error) {
       console.error('Error fetching resources:', error)
-      toast({
-        title: "Error",
-        description: "Failed to fetch resources",
-        variant: "destructive",
-      })
+      toast.error("Failed to fetch resources")
     } finally {
       setLoading(false)
     }
@@ -288,11 +285,7 @@ export default function ResourcesManagement() {
   // Add new resource
   const addResource = async () => {
     if (!formData.title || !formData.description || !formData.file) {
-      toast({
-        title: "Error",
-        description: "Please fill in all required fields and upload a file",
-        variant: "destructive",
-      })
+      toast.error("Please fill in all required fields and upload a file")
       return
     }
 
@@ -307,8 +300,7 @@ export default function ResourcesManagement() {
           title: formData.title,
           description: formData.description,
           file: formData.file,
-          category: formData.category,
-          date: formData.date
+          category: formData.category
         }])
         .select()
         .single()
@@ -392,18 +384,11 @@ export default function ResourcesManagement() {
       resetForm()
       setIsAddDialogOpen(false)
       await fetchResources()
-      
-      toast({
-        title: "Success",
-        description: "Resource added successfully",
-      })
+      toast.success("Resource added successfully")
+      router.push("/admin/resources")
     } catch (error) {
       console.error('Error adding resource:', error)
-      toast({
-        title: "Error",
-        description: "Failed to add resource",
-        variant: "destructive",
-      })
+      toast.error("Failed to add resource")
     } finally {
       setSubmitting(false)
     }
@@ -412,11 +397,7 @@ export default function ResourcesManagement() {
   // Update resource
   const updateResource = async () => {
     if (!editingResource || !formData.title || !formData.description || !formData.file) {
-      toast({
-        title: "Error",
-        description: "Please fill in all required fields",
-        variant: "destructive",
-      })
+      toast.error("Please fill in all required fields")
       return
     }
 
@@ -431,8 +412,7 @@ export default function ResourcesManagement() {
           title: formData.title,
           description: formData.description,
           file: formData.file,
-          category: formData.category,
-          date: formData.date
+          category: formData.category
         })
         .eq('id', editingResource.id)
 
@@ -516,18 +496,11 @@ export default function ResourcesManagement() {
       setEditingResource(null)
       setIsEditDialogOpen(false)
       await fetchResources()
-      
-      toast({
-        title: "Success",
-        description: "Resource updated successfully",
-      })
+      toast.success("Resource updated successfully.")
+      router.push("/admin/resources")
     } catch (error) {
       console.error('Error updating resource:', error)
-      toast({
-        title: "Error",
-        description: "Failed to update resource",
-        variant: "destructive",
-      })
+      toast.error("Failed to update resource")
     } finally {
       setSubmitting(false)
     }
@@ -548,18 +521,11 @@ export default function ResourcesManagement() {
       }
 
       setResources(prev => prev.filter(resource => resource.id !== id))
-      
-      toast({
-        title: "Success",
-        description: "Resource deleted successfully",
-      })
+      toast.success("Resource deleted successfully")
+      router.push("/admin/resources")
     } catch (error) {
       console.error('Error deleting resource:', error)
-      toast({
-        title: "Error",
-        description: "Failed to delete resource",
-        variant: "destructive",
-      })
+      toast.error("Failed to delete resource")
     } finally {
       setDeleting(null)
     }
@@ -572,7 +538,6 @@ export default function ResourcesManagement() {
       description: "",
       file: "",
       category: "Publications",
-      date: new Date().toISOString().split('T')[0],
       language: "English",
       status: "active"
     })
@@ -583,15 +548,13 @@ export default function ResourcesManagement() {
   // Open edit dialog
   const openEditDialog = (resource: ResourceWithDetails) => {
     setEditingResource(resource)
-    
+    // Only declare baseFormData once
     const baseFormData: FormData = {
       title: resource.title,
       description: resource.description,
       file: resource.file,
-      category: resource.category,
-      date: resource.date
+      category: resource.category
     }
-
     // Add category-specific fields
     if (resource.publication) {
       Object.assign(baseFormData, {
@@ -632,9 +595,13 @@ export default function ResourcesManagement() {
         status: resource.curriculum.status
       })
     }
-
     setFormData(baseFormData)
     setIsEditDialogOpen(true)
+  }
+
+  const handleViewDetails = (resource: ResourceWithDetails) => {
+    setSelectedResource(resource)
+    setIsViewDialogOpen(true)
   }
 
   useEffect(() => {
@@ -1084,10 +1051,11 @@ export default function ResourcesManagement() {
               Add Resource
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto" aria-describedby="add-resource-description">
             <DialogHeader>
               <DialogTitle>Add New Resource</DialogTitle>
             </DialogHeader>
+            <div id="add-resource-description" className="sr-only">Fill out the form to add a new resource. All required fields must be completed.</div>
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
@@ -1128,17 +1096,6 @@ export default function ResourcesManagement() {
                   value={formData.description}
                   onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
                   placeholder="Enter resource description"
-                />
-              </div>
-
-              <div>
-                <Label htmlFor="date">Date *</Label>
-                <Input
-                  id="date"
-                  required
-                  type="date"
-                  value={formData.date}
-                  onChange={(e) => setFormData(prev => ({ ...prev, date: e.target.value }))}
                 />
               </div>
 
@@ -1266,6 +1223,10 @@ export default function ResourcesManagement() {
                           <Edit className="mr-2 h-4 w-4" />
                           Edit
                         </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleViewDetails(resource)}>
+                          <Eye className="mr-2 h-4 w-4" />
+                          View Details
+                        </DropdownMenuItem>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem
                           onClick={() => deleteResource(resource.id)}
@@ -1287,10 +1248,11 @@ export default function ResourcesManagement() {
 
       {/* Edit Dialog */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto" aria-describedby="edit-resource-description">
           <DialogHeader>
             <DialogTitle>Edit Resource</DialogTitle>
           </DialogHeader>
+          <div id="edit-resource-description" className="sr-only">Edit the details of the selected resource. All required fields must be completed.</div>
           <div className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div>
@@ -1303,35 +1265,32 @@ export default function ResourcesManagement() {
                 />
               </div>
               <div>
-                <Label htmlFor="edit-description">Description</Label>
-                <Textarea
-                  id="edit-description"
-                  value={formData.description}
-                  onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-                  placeholder="Enter resource description"
-                />
-              </div>
-              <div>
                 <Label htmlFor="edit-category">Category</Label>
-                <Input
-                  id="edit-category"
+                <Select
                   value={formData.category}
-                  onChange={(e) => setFormData(prev => ({ ...prev, category: e.target.value }))}
-                  placeholder="Enter resource category"
-                />
+                  onValueChange={(value) => setFormData(prev => ({ ...prev, category: value as any }))}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select category" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Publications">Publications</SelectItem>
+                    <SelectItem value="Policy">Policy</SelectItem>
+                    <SelectItem value="Reports">Reports</SelectItem>
+                    <SelectItem value="Curriculum">Curriculum</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             </div>
-            
             <div>
-              <Label htmlFor="edit-date">Date *</Label>
-              <Input
-                id="edit-date"
-                type="date"
-                value={formData.date}
-                onChange={(e) => setFormData(prev => ({ ...prev, date: e.target.value }))}
+              <Label htmlFor="edit-description">Description</Label>
+              <Textarea
+                id="edit-description"
+                value={formData.description}
+                onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+                placeholder="Enter resource description"
               />
             </div>
-
             <div>
               <Label>File Upload</Label>
               <FileUpload
@@ -1361,6 +1320,122 @@ export default function ResourcesManagement() {
               )}
             </Button>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* View Details Dialog */}
+      <Dialog open={isViewDialogOpen} onOpenChange={setIsViewDialogOpen}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Resource Details</DialogTitle>
+          </DialogHeader>
+          {selectedResource && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-sm font-medium">Title</label>
+                  <p className="text-sm text-muted-foreground">{selectedResource.title}</p>
+                </div>
+                <div>
+                  <label className="text-sm font-medium">Category</label>
+                  <p className="text-sm text-muted-foreground">{selectedResource.category}</p>
+                </div>
+              </div>
+              <div>
+                <label className="text-sm font-medium">Description</label>
+                <p className="text-sm text-muted-foreground">{selectedResource.description}</p>
+              </div>
+              <div>
+                <label className="text-sm font-medium">File</label>
+                {selectedResource.file && <a href={selectedResource.file} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">View/Download</a>}
+              </div>
+              {/* Category-specific fields */}
+              {selectedResource.publication && (
+                <div>
+                  <label className="text-sm font-medium">Publication Type</label>
+                  <p className="text-sm text-muted-foreground">{selectedResource.publication.publication_type}</p>
+                  <label className="text-sm font-medium">Version</label>
+                  <p className="text-sm text-muted-foreground">{selectedResource.publication.version}</p>
+                  <label className="text-sm font-medium">Language</label>
+                  <p className="text-sm text-muted-foreground">{selectedResource.publication.language}</p>
+                </div>
+              )}
+              {selectedResource.policy && (
+                <div>
+                  <label className="text-sm font-medium">Policy Type</label>
+                  <p className="text-sm text-muted-foreground">{selectedResource.policy.policy_type}</p>
+                  <label className="text-sm font-medium">Version</label>
+                  <p className="text-sm text-muted-foreground">{selectedResource.policy.version}</p>
+                  <label className="text-sm font-medium">Effective Date</label>
+                  <p className="text-sm text-muted-foreground">{selectedResource.policy.effective_date ? new Date(selectedResource.policy.effective_date).toLocaleDateString() : ''}</p>
+                  <label className="text-sm font-medium">Review Date</label>
+                  <p className="text-sm text-muted-foreground">{selectedResource.policy.review_date ? new Date(selectedResource.policy.review_date).toLocaleDateString() : ''}</p>
+                  <label className="text-sm font-medium">Approved By</label>
+                  <p className="text-sm text-muted-foreground">{selectedResource.policy.approved_by}</p>
+                </div>
+              )}
+              {selectedResource.report && (
+                <div>
+                  <label className="text-sm font-medium">Report Type</label>
+                  <p className="text-sm text-muted-foreground">{selectedResource.report.report_type}</p>
+                  <label className="text-sm font-medium">Fiscal Year</label>
+                  <p className="text-sm text-muted-foreground">{selectedResource.report.fiscal_year}</p>
+                  <label className="text-sm font-medium">Prepared By</label>
+                  <p className="text-sm text-muted-foreground">{selectedResource.report.prepared_by}</p>
+                  <label className="text-sm font-medium">Approved By</label>
+                  <p className="text-sm text-muted-foreground">{selectedResource.report.approved_by}</p>
+                  <label className="text-sm font-medium">Reporting Period</label>
+                  <p className="text-sm text-muted-foreground">{selectedResource.report.reporting_period}</p>
+                </div>
+              )}
+              {selectedResource.curriculum && (
+                <div>
+                  <label className="text-sm font-medium">Occupation</label>
+                  <p className="text-sm text-muted-foreground">{selectedResource.curriculum.occupation}</p>
+                  <label className="text-sm font-medium">Type</label>
+                  <p className="text-sm text-muted-foreground">{selectedResource.curriculum.type}</p>
+                  <label className="text-sm font-medium">Developed By</label>
+                  <p className="text-sm text-muted-foreground">{selectedResource.curriculum.developed_by}</p>
+                  <label className="text-sm font-medium">Curriculum Type</label>
+                  <p className="text-sm text-muted-foreground">{selectedResource.curriculum.curriculum_type}</p>
+                  <label className="text-sm font-medium">Course Category</label>
+                  <p className="text-sm text-muted-foreground">{selectedResource.curriculum.course_category}</p>
+                  <label className="text-sm font-medium">Duration</label>
+                  <p className="text-sm text-muted-foreground">{selectedResource.curriculum.duration}</p>
+                  <label className="text-sm font-medium">Credit Hours</label>
+                  <p className="text-sm text-muted-foreground">{selectedResource.curriculum.credit_hours}</p>
+                  <label className="text-sm font-medium">Prerequisites</label>
+                  <ul className="text-sm text-muted-foreground list-disc ml-5">
+                    {(selectedResource.curriculum.prerequisites || []).map((item, idx) => <li key={idx}>{item}</li>)}
+                  </ul>
+                  <label className="text-sm font-medium">Learning Outcomes</label>
+                  <ul className="text-sm text-muted-foreground list-disc ml-5">
+                    {(selectedResource.curriculum.learning_outcomes || []).map((item, idx) => <li key={idx}>{item}</li>)}
+                  </ul>
+                  <label className="text-sm font-medium">Assessment Methods</label>
+                  <ul className="text-sm text-muted-foreground list-disc ml-5">
+                    {(selectedResource.curriculum.assessment_methods || []).map((item, idx) => <li key={idx}>{item}</li>)}
+                  </ul>
+                  <label className="text-sm font-medium">Approved Date</label>
+                  <p className="text-sm text-muted-foreground">{selectedResource.curriculum.approved_date ? new Date(selectedResource.curriculum.approved_date).toLocaleDateString() : ''}</p>
+                  <label className="text-sm font-medium">Revision Date</label>
+                  <p className="text-sm text-muted-foreground">{selectedResource.curriculum.revision_date ? new Date(selectedResource.curriculum.revision_date).toLocaleDateString() : ''}</p>
+                  <label className="text-sm font-medium">Status</label>
+                  <p className="text-sm text-muted-foreground">{selectedResource.curriculum.status}</p>
+                </div>
+              )}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-sm font-medium">Created At</label>
+                  <p className="text-sm text-muted-foreground">{new Date(selectedResource.created_at).toLocaleString()}</p>
+                </div>
+                <div>
+                  <label className="text-sm font-medium">Updated At</label>
+                  <p className="text-sm text-muted-foreground">{new Date(selectedResource.updated_at).toLocaleString()}</p>
+                </div>
+              </div>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
     </div>

@@ -1,15 +1,15 @@
+// This file is deprecated and unused. Toasts are now handled by sonner.
 "use client"
 
 // Inspired by react-hot-toast library
 import * as React from "react"
 
-import type {
-  ToastActionElement,
-  ToastProps,
-} from "@/components/ui/toast"
+// Temporary: use 'any' for ToastActionElement and ToastProps until toast types are defined
+type ToastActionElement = any;
+type ToastProps = any;
 
 const TOAST_LIMIT = 1
-const TOAST_REMOVE_DELAY = 1000000
+const TOAST_REMOVE_DELAY = 4000
 
 type ToasterToast = ToastProps & {
   id: string
@@ -158,7 +158,7 @@ function toast({ ...props }: Toast) {
       ...props,
       id,
       open: true,
-      onOpenChange: (open) => {
+      onOpenChange: (open: boolean) => {
         if (!open) dismiss()
       },
     },
@@ -192,3 +192,5 @@ function useToast() {
 }
 
 export { useToast, toast }
+
+export {} // dummy export to avoid import errors

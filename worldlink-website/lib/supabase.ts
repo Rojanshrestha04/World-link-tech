@@ -34,7 +34,8 @@ export function getSupabaseBrowserClient() {
           global: {
             headers: {
               'x-application-name': 'worldlink-admin'
-            }
+            },
+            fetch: (url: RequestInfo, init?: RequestInit) => fetch(url, { ...init, cache: 'no-store' }),
           },
           db: {
             schema: 'public'
@@ -64,18 +65,18 @@ export function getSupabaseBrowserClient() {
 // For server components and API routes
 export const getSupabaseServerClient = () => {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+  const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
 
-  if (!supabaseUrl || !supabaseAnonKey) {
+  if (!supabaseUrl || !supabaseServiceKey) {
     console.error("Missing Supabase environment variables:", {
       url: supabaseUrl ? "present" : "missing",
-      key: supabaseAnonKey ? "present" : "missing"
+      key: supabaseServiceKey ? "present" : "missing"
     })
     throw new Error("Supabase environment variables are missing. Please check your .env.local file.")
   }
 
   try {
-    return createClient(supabaseUrl, supabaseAnonKey, {
+    return createClient(supabaseUrl, supabaseServiceKey, {
       auth: {
         autoRefreshToken: false,
         persistSession: false,

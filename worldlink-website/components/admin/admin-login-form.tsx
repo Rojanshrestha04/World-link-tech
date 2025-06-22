@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Loader2 } from "lucide-react"
 import { useAdminAuth } from "@/contexts/auth-context"
+import { toast } from "sonner"
 
 const formSchema = z.object({
   email: z.string().email({
@@ -40,29 +41,17 @@ export default function AdminLoginForm() {
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsLoading(true)
     setError(null)
-
     try {
       const { error, success } = await signIn(values.email, values.password)
-
       if (!success) {
+        toast.error(error?.message || "Login failed")
         throw error || new Error("Login failed")
       }
-
-      // Use replace for navigation
+      toast.success("Logged in successfully!")
       router.replace(callbackUrl)
     } catch (err) {
-      console.error("Login error:", err)
-      if (err instanceof Error) {
-        if (err.message.includes("Failed to fetch")) {
-          setError("Network error: Unable to connect to the server. Please check your internet connection and try again.")
-        } else if (err.message.includes("Unauthorized")) {
-          setError("You do not have admin access. Please contact the administrator.")
-        } else {
-          setError(err.message)
-        }
-      } else {
-        setError("An unexpected error occurred. Please try again.")
-      }
+      toast.error(err instanceof Error ? err.message : "An error occurred during login")
+      setError(err instanceof Error ? err.message : "An error occurred during login")
     } finally {
       setIsLoading(false)
     }
@@ -70,12 +59,6 @@ export default function AdminLoginForm() {
 
   return (
     <div className="bg-white p-8 rounded-lg shadow-sm">
-      {error && (
-        <Alert variant="destructive" className="mb-6">
-          <AlertDescription>{error}</AlertDescription>
-        </Alert>
-      )}
-
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
           <FormField

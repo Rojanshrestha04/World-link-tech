@@ -6,10 +6,10 @@ import { Filter, X } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import PageHeader from "@/components/page-header"
-import { Gallery } from "@/lib/types"
+import { GalleryImage } from "@/lib/types"
 
 export default function GalleryPage() {
-  const [allGalleryImages, setAllGalleryImages] = useState<Gallery[]>([])
+  const [allGalleryImages, setAllGalleryImages] = useState<GalleryImage[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -123,11 +123,11 @@ export default function GalleryPage() {
               <div
                 key={image.id}
                 className="relative group overflow-hidden rounded-lg cursor-pointer"
-                onClick={() => setSelectedImage(image.image_url)}
+                onClick={() => setSelectedImage(image.image)}
               >
                 <div className="aspect-square relative">
                   <Image
-                    src={image.image_url || "/placeholder.svg"}
+                    src={image.image || "/placeholder.svg"}
                     alt={image.title}
                     fill
                     className="object-cover transition-transform duration-300 group-hover:scale-110"

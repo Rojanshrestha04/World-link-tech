@@ -11,6 +11,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Input } from "@/components/ui/input"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { useUserAuth } from "@/context/auth-context"
+import { toast } from "sonner"
 
 const formSchema = z.object({
   email: z.string().email({
@@ -40,11 +41,18 @@ export default function LoginForm() {
     setError(null)
 
     try {
-      await signIn(values.email, values.password)
-      router.push("/")
-      router.refresh()
+      const { error, success } = await signIn(values.email, values.password)
+      if (success) {
+        toast.success("Logged in successfully!")
+        router.push("/")
+        router.refresh()
+      } else {
+        toast.error(error?.message || "Invalid login credentials")
+        setError(error?.message || "Invalid login credentials")
+      }
     } catch (err) {
       console.error("Login error:", err)
+      toast.error(err instanceof Error ? err.message : "An error occurred during login")
       setError(err instanceof Error ? err.message : "An error occurred during login")
     } finally {
       setIsLoading(false)
@@ -53,12 +61,6 @@ export default function LoginForm() {
 
   return (
     <>
-      {error && (
-        <Alert variant="destructive" className="mb-6">
-          <AlertDescription>{error}</AlertDescription>
-        </Alert>
-      )}
-
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
           <FormField

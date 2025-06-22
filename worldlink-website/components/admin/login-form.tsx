@@ -10,6 +10,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Input } from "@/components/ui/input"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { AlertCircle, Loader2 } from "lucide-react"
+import { toast } from "sonner"
 
 const formSchema = z.object({
   email: z.string().email({
@@ -50,13 +51,15 @@ export default function LoginForm() {
 
       if (!response.ok) {
         const data = await response.json()
+        toast.error(data.message || "Login failed")
         throw new Error(data.message || "Login failed")
       }
 
-      // Redirect to admin dashboard or callback URL
+      toast.success("Logged in successfully!")
       router.push(callbackUrl)
       router.refresh()
     } catch (err) {
+      toast.error(err instanceof Error ? err.message : "An error occurred during login")
       setError(err instanceof Error ? err.message : "An error occurred during login")
     } finally {
       setIsLoading(false)
@@ -66,13 +69,6 @@ export default function LoginForm() {
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-        {error && (
-          <Alert variant="destructive">
-            <AlertCircle className="h-4 w-4" />
-            <AlertDescription>{error}</AlertDescription>
-          </Alert>
-        )}
-
         <FormField
           control={form.control}
           name="email"

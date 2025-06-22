@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { AlertCircle, Loader2 } from "lucide-react"
 import { useUserAuth } from "@/context/auth-context"
+import { toast } from "sonner"
 
 const formSchema = z
   .object({
@@ -50,20 +51,20 @@ export default function SignupForm() {
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsLoading(true)
     setError(null)
-
     try {
       const { error, success } = await signUp(values.email, values.password, values.fullName)
-
       if (success) {
         setIsSuccess(true)
-        // Redirect to login page after 3 seconds
+        toast.success("Registration successful! Please check your email for verification instructions.")
         setTimeout(() => {
           router.push("/auth/login")
         }, 3000)
       } else {
+        toast.error(error?.message || "Registration failed. Please try again.")
         setError(error?.message || "Registration failed. Please try again.")
       }
     } catch (err) {
+      toast.error("An unexpected error occurred. Please try again.")
       setError("An unexpected error occurred. Please try again.")
     } finally {
       setIsLoading(false)
@@ -88,13 +89,6 @@ export default function SignupForm() {
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-        {error && (
-          <Alert variant="destructive">
-            <AlertCircle className="h-4 w-4" />
-            <AlertDescription>{error}</AlertDescription>
-          </Alert>
-        )}
-
         <FormField
           control={form.control}
           name="fullName"

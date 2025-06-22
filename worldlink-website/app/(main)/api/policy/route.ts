@@ -37,7 +37,7 @@ export async function GET() {
 
     if (error) {
       console.error('Error fetching policies:', error)
-      return NextResponse.json({ error: `Failed to fetch policies: ${error.message}` }, { status: 500 })
+      return NextResponse.json({ error: error.message ? `Failed to fetch policies: ${error.message}` : 'Failed to fetch policies.' }, { status: 500 })
     }
 
     if (!policies || policies.length === 0) {
