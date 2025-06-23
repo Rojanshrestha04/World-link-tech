@@ -100,3 +100,18 @@ export interface Report extends Resource {
   prepared_by?: string
   approved_by?: string
 }
+
+export interface GeneralSettings {
+  id: number;
+  site_name: string;
+  site_description?: string;
+  contact_email: string;
+  contact_phone: string;
+  address: string;
+  social_facebook?: string;
+  social_twitter?: string;
+  social_linkedin?: string;
+  social_instagram?: string;
+  created_at: string;
+  updated_at: string;
+}

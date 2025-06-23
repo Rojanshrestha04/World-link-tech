@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Image from "next/image"
 import Link from "next/link"
 import { zodResolver } from "@hookform/resolvers/zod"
@@ -15,6 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import PageHeader from "@/components/page-header"
 import { getSupabaseBrowserClient } from "@/lib/supabase"
 import { toast } from "sonner"
+import type { GeneralSettings } from "@/lib/types"
 
 const formSchema = z.object({
   name: z.string().min(2, {
@@ -41,6 +42,7 @@ export default function ContactPageClient() {
   const [isSubmitted, setIsSubmitted] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
+  const [settings, setSettings] = useState<GeneralSettings | null>(null)
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -53,6 +55,26 @@ export default function ContactPageClient() {
       message: "",
     },
   })
+
+  useEffect(() => {
+    const fetchSettings = async () => {
+      try {
+        const supabase = getSupabaseBrowserClient()
+        const { data, error } = await supabase
+          .from("general_settings")
+          .select("*")
+          .single()
+        if (error) {
+          setError(error.message)
+        } else {
+          setSettings(data)
+        }
+      } catch (err: any) {
+        setError(err.message || "Failed to load settings")
+      }
+    }
+    fetchSettings()
+  }, [])
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsLoading(true)
@@ -103,71 +125,83 @@ export default function ContactPageClient() {
             <div>
               <h2 className="text-2xl font-bold text-slate-800 mb-6">Contact Information</h2>
 
-              <div className="space-y-6">
-                <div className="flex items-start gap-4">
-                  <div className="bg-blue-100 p-3 rounded-full">
-                    <MapPin className="h-6 w-6 text-blue-700" />
+              {!settings ? (
+                <div className="text-slate-500">Loading contact information...</div>
+              ) : (
+                <div className="space-y-6">
+                  <div className="flex items-start gap-4">
+                    <div className="bg-blue-100 p-3 rounded-full">
+                      <MapPin className="h-6 w-6 text-blue-700" />
+                    </div>
+                    <div>
+                      <h3 className="font-semibold text-lg mb-1">Our Location</h3>
+                      <p className="text-slate-600">
+                        {settings.site_name}
+                        <br />
+                        {settings.address}
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <h3 className="font-semibold text-lg mb-1">Our Location</h3>
-                    <p className="text-slate-600">
-                      World Link Technical Training Institute
-                      <br />
-                      Jawalakhel, Lalitpur
-                      <br />
-                      Kathmandu, Nepal
-                    </p>
-                  </div>
-                </div>
 
-                <div className="flex items-start gap-4">
-                  <div className="bg-blue-100 p-3 rounded-full">
-                    <Phone className="h-6 w-6 text-blue-700" />
+                  <div className="flex items-start gap-4">
+                    <div className="bg-blue-100 p-3 rounded-full">
+                      <Phone className="h-6 w-6 text-blue-700" />
+                    </div>
+                    <div>
+                      <h3 className="font-semibold text-lg mb-1">Phone</h3>
+                      <p className="text-slate-600">
+                        {settings.contact_phone}
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <h3 className="font-semibold text-lg mb-1">Phone</h3>
-                    <p className="text-slate-600">
-                      Main: 01-5970000
-                      <br />
-                      Admissions: 01-5970001
-                      <br />
-                      Support: 01-5970002
-                    </p>
-                  </div>
-                </div>
 
-                <div className="flex items-start gap-4">
-                  <div className="bg-blue-100 p-3 rounded-full">
-                    <Mail className="h-6 w-6 text-blue-700" />
+                  <div className="flex items-start gap-4">
+                    <div className="bg-blue-100 p-3 rounded-full">
+                      <Mail className="h-6 w-6 text-blue-700" />
+                    </div>
+                    <div>
+                      <h3 className="font-semibold text-lg mb-1">Email</h3>
+                      <p className="text-slate-600">
+                        {settings.contact_email}
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <h3 className="font-semibold text-lg mb-1">Email</h3>
-                    <p className="text-slate-600">
-                      General Inquiries: info@worldlinktraining.edu.np
-                      <br />
-                      Admissions: admissions@worldlinktraining.edu.np
-                      <br />
-                      Support: support@worldlinktraining.edu.np
-                    </p>
+                  {/* Social links if available */}
+                  {(settings.social_facebook || settings.social_twitter || settings.social_linkedin || settings.social_instagram) && (
+                    <div className="flex items-start gap-4">
+                      <div className="bg-blue-100 p-3 rounded-full">
+                        {/* You can use a social icon here */}
+                        <span className="h-6 w-6 text-blue-700">🌐</span>
+                      </div>
+                      <div>
+                        <h3 className="font-semibold text-lg mb-1">Social</h3>
+                        <p className="text-slate-600 space-x-2">
+                          {settings.social_facebook && <a href={settings.social_facebook} target="_blank" rel="noopener noreferrer" className="underline">Facebook</a>}
+                          {settings.social_twitter && <a href={settings.social_twitter} target="_blank" rel="noopener noreferrer" className="underline">Twitter</a>}
+                          {settings.social_linkedin && <a href={settings.social_linkedin} target="_blank" rel="noopener noreferrer" className="underline">LinkedIn</a>}
+                          {settings.social_instagram && <a href={settings.social_instagram} target="_blank" rel="noopener noreferrer" className="underline">Instagram</a>}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                  {/* Static Office Hours */}
+                  <div className="flex items-start gap-4">
+                    <div className="bg-blue-100 p-3 rounded-full">
+                      <Clock className="h-6 w-6 text-blue-700" />
+                    </div>
+                    <div>
+                      <h3 className="font-semibold text-lg mb-1">Office Hours</h3>
+                      <p className="text-slate-600">
+                        Sunday - Friday: 9:00 AM - 5:00 PM
+                        <br />
+                        Saturday: Closed
+                        <br />
+                        Public Holidays: Closed
+                      </p>
+                    </div>
                   </div>
                 </div>
-
-                <div className="flex items-start gap-4">
-                  <div className="bg-blue-100 p-3 rounded-full">
-                    <Clock className="h-6 w-6 text-blue-700" />
-                  </div>
-                  <div>
-                    <h3 className="font-semibold text-lg mb-1">Office Hours</h3>
-                    <p className="text-slate-600">
-                      Sunday - Friday: 9:00 AM - 5:00 PM
-                      <br />
-                      Saturday: Closed
-                      <br />
-                      Public Holidays: Closed
-                    </p>
-                  </div>
-                </div>
-              </div>
+              )}
 
               <div className="mt-8">
                 <h3 className="font-semibold text-lg mb-4">Find Us On Map</h3>
