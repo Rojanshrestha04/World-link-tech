@@ -17,6 +17,7 @@ import {
   Briefcase,
   ChevronDown,
   UserCircle,
+  MessageCircle,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -57,6 +58,12 @@ const sidebarItems = [
     title: "News & Events",
     href: "/admin/news",
     icon: FileText,
+  },
+  {
+    id: "testimonials",
+    title: "Testimonials",
+    href: "/admin/testimonials",
+    icon: MessageCircle,
   },
   {
     id: "gallery",

@@ -1,26 +1,40 @@
 "use client"
 
-import React, { useEffect, useState } from "react"
+import React, { useEffect, useState, useRef } from "react"
 import Image from "next/image"
 import Link from "next/link"
 import { GraduationCap, BookOpen, Users, Award, FileText, ArrowRight } from "lucide-react"
 import { Course } from "@/lib/types"
 import CourseCard from "@/components/course-card"
 import TestimonialCard from "@/components/testimonial-card"
-import { testimonials } from "@/lib/data" // Import static testimonials
+import type { Testimonial } from "@/lib/types"
+import {
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+  CarouselPrevious,
+  CarouselNext,
+} from "@/components/ui/carousel"
+import Autoplay from "embla-carousel-autoplay"
 
 export default function HomePage() {
   const [featuredCourses, setFeaturedCourses] = useState<Course[]>([])
   const [popularCourses, setPopularCourses] = useState<Course[]>([])
-  // Remove testimonials from state since we're using static data
+  const [testimonials, setTestimonials] = useState<Testimonial[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [testimonialsLoading, setTestimonialsLoading] = useState(true)
+  const [testimonialsError, setTestimonialsError] = useState<string | null>(null)
+  const autoplayRef = useRef<any>(null)
+  const [isHovered, setIsHovered] = useState(false)
 
   useEffect(() => {
     const fetchData = async () => {
       try {
         setLoading(true)
         setError(null)
+        setTestimonialsLoading(true)
+        setTestimonialsError(null)
         
         // Fetch featured courses
         const featuredRes = await fetch('/api/courses/featured')
@@ -40,19 +54,21 @@ export default function HomePage() {
         const popularData = await popularRes.json()
         setPopularCourses(popularData)
 
-        // Remove testimonials fetch - now using static data
-        // const testimonialsRes = await fetch('/api/testimonials')
-        // if (!testimonialsRes.ok) {
-        //   const errorData = await testimonialsRes.json()
-        //   throw new Error(errorData.error || 'Failed to fetch testimonials')
-        // }
-        // const testimonialsData = await testimonialsRes.json()
-        // setTestimonials(testimonialsData)
+        // Fetch testimonials from API
+        const testimonialsRes = await fetch('/api/testimonials')
+        if (!testimonialsRes.ok) {
+          const errorData = await testimonialsRes.json()
+          throw new Error(errorData.error || 'Failed to fetch testimonials')
+        }
+        const testimonialsData = await testimonialsRes.json()
+        setTestimonials(testimonialsData)
       } catch (error) {
         console.error('Error fetching data:', error)
         setError(error instanceof Error ? error.message : 'Failed to fetch data')
+        setTestimonialsError(error instanceof Error ? error.message : 'Failed to fetch testimonials')
       } finally {
         setLoading(false)
+        setTestimonialsLoading(false)
       }
     }
 
@@ -236,7 +252,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Testimonials - Now using static data */}
+      {/* Testimonials Section */}
       <section className="py-16">
         <div className="container mx-auto px-4">
           <div className="text-center mb-12">
@@ -245,12 +261,65 @@ export default function HomePage() {
               Hear from our graduates who have successfully built their careers after training with us
             </p>
           </div>
-
-          <div className="grid md:grid-cols-3 gap-8">
-            {testimonials.map((testimonial) => (
-              <TestimonialCard key={testimonial.id} testimonial={testimonial} />
-            ))}
-          </div>
+          {testimonialsLoading ? (
+            <div className="text-center py-12">
+              <p className="text-lg">Loading testimonials...</p>
+            </div>
+          ) : testimonialsError ? (
+            <div className="text-center py-12">
+              <p className="text-lg text-red-600">{testimonialsError}</p>
+              <button 
+                onClick={() => window.location.reload()} 
+                className="mt-4 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+              >
+                Try Again
+              </button>
+            </div>
+          ) : testimonials.length === 0 ? (
+            <div className="text-center py-12">
+              <p className="text-lg">No testimonials available at the moment.</p>
+            </div>
+          ) : testimonials.length > 3 ? (
+            <div className="relative"
+              onMouseEnter={() => {
+                setIsHovered(true)
+                if (autoplayRef.current) autoplayRef.current.stop()
+              }}
+              onMouseLeave={() => {
+                setIsHovered(false)
+                if (autoplayRef.current) autoplayRef.current.play()
+              }}
+            >
+              <Carousel
+                opts={{
+                  loop: true,
+                  align: "center",
+                  slidesToScroll: 1,
+                }}
+                plugins={[Autoplay({ delay: 3500, stopOnInteraction: false, stopOnMouseEnter: false, stopOnFocusIn: false, active: !isHovered })]}
+                className="w-full"
+              >
+                <CarouselPrevious />
+                <CarouselNext />
+                <CarouselContent>
+                  {testimonials.map((testimonial) => (
+                    <CarouselItem
+                      key={testimonial.id}
+                      className="md:basis-1/3 lg:basis-1/3 px-2"
+                    >
+                      <TestimonialCard testimonial={testimonial} />
+                    </CarouselItem>
+                  ))}
+                </CarouselContent>
+              </Carousel>
+            </div>
+          ) : (
+            <div className="grid md:grid-cols-3 gap-8">
+              {testimonials.map((testimonial) => (
+                <TestimonialCard key={testimonial.id} testimonial={testimonial} />
+              ))}
+            </div>
+          )}
         </div>
       </section>
 
