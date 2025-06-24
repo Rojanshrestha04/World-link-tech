@@ -249,3 +249,22 @@ CREATE TABLE IF NOT EXISTS public.curriculums (
     academic_year TEXT,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
+
+-- =====================================================
+-- 16. TEAMS TABLE (For Our Team page)
+-- =====================================================
+CREATE TABLE IF NOT EXISTS public.teams (
+    id SERIAL PRIMARY KEY,
+    name TEXT NOT NULL,
+    position TEXT NOT NULL,
+    bio TEXT,
+    image TEXT,
+    email TEXT,
+    phone TEXT,
+    linkedin TEXT,
+    category TEXT NOT NULL, -- e.g., 'Leadership Team', 'Faculty Members', 'Support Staff'
+    is_active BOOLEAN DEFAULT true,
+    display_order INTEGER DEFAULT 0,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);

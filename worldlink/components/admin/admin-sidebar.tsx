@@ -66,6 +66,12 @@ const sidebarItems = [
     icon: MessageCircle,
   },
   {
+    id: "teams",
+    title: "Teams",
+    href: "/admin/teams",
+    icon: Users,
+  },
+  {
     id: "gallery",
     title: "Gallery",
     href: "/admin/gallery",

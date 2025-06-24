@@ -102,3 +102,28 @@ BEGIN
     END IF;
 END $$;
 */
+
+-- =====================================================
+-- 8. INSERT TEAM MEMBERS
+-- =====================================================
+-- Leadership Team
+INSERT INTO public.teams (name, position, bio, image, email, phone, linkedin, category, display_order) VALUES
+('Dr. Rajesh Sharma', 'Director', 'With over 20 years of experience in technical education and management, Dr. Sharma leads our institute with a vision for excellence and innovation. He holds a Ph.D. in Educational Leadership and has previously worked with several leading educational institutions in Nepal and abroad.', '/team-director.png', 'director@worldlinktraining.edu.np', '+977-1-5970001', 'https://linkedin.com/in/rajesh-sharma', 'Leadership Team', 1),
+('Sushila Thapa', 'Academic Director', 'Ms. Thapa oversees our academic programs, curriculum development, and quality assurance, ensuring our courses meet industry standards. With a Master''s in Education and 15 years of experience in vocational training, she has been instrumental in developing our CTEVT-certified curriculum.', '/team-academic.png', 'academic@worldlinktraining.edu.np', '+977-1-5970002', 'https://linkedin.com/in/sushila-thapa', 'Leadership Team', 2),
+('Binod Adhikari', 'Administrative Manager', 'Mr. Adhikari manages the day-to-day operations of our institute, ensuring smooth functioning of administrative processes and student services. He has over 10 years of experience in educational administration and holds an MBA from Tribhuvan University.', '/team-admin.png', 'admin@worldlinktraining.edu.np', '+977-1-5970003', 'https://linkedin.com/in/binod-adhikari', 'Leadership Team', 3);
+
+-- Faculty Members
+INSERT INTO public.teams (name, position, bio, image, category, display_order) VALUES
+('Prakash Gurung', 'Head of IT Department', 'Mr. Gurung leads our IT department with 12 years of industry experience. He specializes in computer hardware, networking, and cybersecurity, and holds multiple industry certifications including CCNA and CompTIA A+.', '/faculty-it.png', 'Faculty Members', 1),
+('Sarita Maharjan', 'Senior Electrical Instructor', 'Ms. Maharjan brings 10 years of practical experience in electrical engineering and installation. She has worked on numerous commercial and residential projects and specializes in electrical wiring, installation, and maintenance.', '/faculty-electrical.png', 'Faculty Members', 2),
+('Deepak Shrestha', 'Head of Hospitality Department', 'Chef Shrestha has over 15 years of experience in the hospitality industry, having worked in five-star hotels in Nepal and abroad. He specializes in culinary arts and hospitality management.', '/faculty-hospitality.png', 'Faculty Members', 3),
+('Anita Tamang', 'Mechanical Engineering Instructor', 'Ms. Tamang specializes in plumbing, welding, and mechanical systems. With 8 years of industry experience, she brings practical knowledge and hands-on expertise to our mechanical courses.', '/faculty-mechanical.png', 'Faculty Members', 4),
+('Ramesh Poudel', 'Mobile Technology Instructor', 'Mr. Poudel is an expert in mobile device repair and maintenance with 7 years of experience working with leading mobile service centers. He specializes in smartphone diagnostics and repair techniques.', '/faculty-mobile.png', 'Faculty Members', 5),
+('Sunita Rai', 'Web Development Instructor', 'Ms. Rai has 6 years of experience as a full-stack web developer. She specializes in modern web technologies and has worked with several tech companies before joining our faculty.', '/faculty-web.png', 'Faculty Members', 6);
+
+-- Support Staff
+INSERT INTO public.teams (name, position, image, category, display_order) VALUES
+('Hari Bahadur', 'Student Affairs Coordinator', '/staff-student-affairs.png', 'Support Staff', 1),
+('Gita Sharma', 'Admissions Officer', '/staff-admissions.png', 'Support Staff', 2),
+('Bikash Magar', 'Career Counselor', '/staff-career.png', 'Support Staff', 3),
+('Sabina Lama', 'Finance Officer', '/staff-finance.png', 'Support Staff', 4);

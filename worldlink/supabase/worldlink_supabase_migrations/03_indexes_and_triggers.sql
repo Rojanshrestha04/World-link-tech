@@ -117,6 +117,14 @@ CREATE INDEX IF NOT EXISTS idx_curriculums_curriculum_type ON public.curriculums
 CREATE INDEX IF NOT EXISTS idx_curriculums_academic_year ON public.curriculums(academic_year);
 
 -- =====================================================
+-- 15. INDEXES FOR TEAMS TABLE
+-- =====================================================
+CREATE INDEX IF NOT EXISTS idx_teams_category ON public.teams(category);
+CREATE INDEX IF NOT EXISTS idx_teams_is_active ON public.teams(is_active);
+CREATE INDEX IF NOT EXISTS idx_teams_display_order ON public.teams(display_order);
+CREATE INDEX IF NOT EXISTS idx_teams_name ON public.teams(name);
+
+-- =====================================================
 -- TRIGGER FUNCTIONS
 -- =====================================================
 
@@ -218,3 +226,18 @@ CREATE TRIGGER set_news_articles_published_at
     BEFORE UPDATE ON public.news_articles
     FOR EACH ROW
     EXECUTE FUNCTION set_published_at();
+
+-- Function to update updated_at timestamp for teams
+CREATE OR REPLACE FUNCTION update_teams_updated_at_column()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.updated_at = timezone('utc'::text, now());
+    RETURN NEW;
+END;
+$$ language 'plpgsql';
+
+-- Teams table trigger
+CREATE TRIGGER update_teams_updated_at
+    BEFORE UPDATE ON public.teams
+    FOR EACH ROW
+    EXECUTE FUNCTION update_teams_updated_at_column();

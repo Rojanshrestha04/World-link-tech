@@ -21,6 +21,7 @@ ALTER TABLE public.publications ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.policies ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.reports ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.curriculums ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.teams ENABLE ROW LEVEL SECURITY;
 
 -- =====================================================
 -- DROP EXISTING POLICIES (CLEANUP)
@@ -88,6 +89,10 @@ DROP POLICY IF EXISTS "Admin full access for reports" ON public.reports;
 -- Curriculums table policies
 DROP POLICY IF EXISTS "Public read access for curriculums" ON public.curriculums;
 DROP POLICY IF EXISTS "Admin full access for curriculums" ON public.curriculums;
+
+-- Teams table policies
+DROP POLICY IF EXISTS "Public read access for teams" ON public.teams;
+DROP POLICY IF EXISTS "Admin full access for teams" ON public.teams;
 
 -- =====================================================
 -- USERS TABLE POLICIES
@@ -445,6 +450,27 @@ USING (
 -- Admin full access to curriculums
 CREATE POLICY "Admin full access for curriculums"
 ON public.curriculums
+FOR ALL
+USING (
+    EXISTS (
+        SELECT 1 FROM public.users 
+        WHERE id = auth.uid() AND role = 'admin'
+    )
+);
+
+-- =====================================================
+-- TEAMS TABLE POLICIES
+-- =====================================================
+
+-- Public can read active team members
+CREATE POLICY "Public read access for teams"
+ON public.teams
+FOR SELECT
+USING (is_active = true);
+
+-- Admin full access to teams
+CREATE POLICY "Admin full access for teams"
+ON public.teams
 FOR ALL
 USING (
     EXISTS (
